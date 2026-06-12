@@ -11,6 +11,7 @@
   "private": true,
   "scripts": {
     "dev": "vite build --watch",
+    "no": "vite",
     "start": "vite build && electron .",
     "dist": "cross-env ELECTRON_DIST=1 vite build && npm run dist:linux && npm run dist:win && npm run dist:mac",
     "dist:linux": "cross-env ELECTRON_DIST=1 vite build && electron-builder --linux deb rpm AppImage pacman --publish never",
@@ -22,6 +23,10 @@
     "dist:mac": "cross-env ELECTRON_DIST=1 vite build && electron-builder --mac --universal --publish never"
   },
   "dependencies": {
+    "@capacitor/android": "^8.4.0",
+    "@capacitor/cli": "^8.4.0",
+    "@capacitor/core": "^8.4.0",
+    "firebase": "^12.14.0",
     "framer-motion": "^12.40.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"

@@ -19,12 +19,16 @@ import {
 import { collectBackupData } from "./utils/backup";
 import { tmdbFetch, setApiErrorHandlers } from "./utils/api";
 import { clearAppCaches } from "./utils/storage";
+import { onAuthStateChanged, signOut, handleOAuthRedirect } from "./services/auth";
+import { getTmdbKey, migrateTmdbKeyToFirestore } from "./services/tmdbKeyService";
 
 import Navbar from "./components/Navbar";
 import SearchModal from "./components/SearchModal";
 import SetupScreen from "./components/SetupScreen";
 import CloseConfirmModal from "./components/CloseConfirmModal";
 import UpdateModal from "./components/UpdateModal";
+import LoginPage from "./components/LoginPage";
+import SignupPage from "./components/SignupPage";
 
 // Lazy-loaded pages: each chunk is only downloaded when the user first visits
 const HomePage = lazy(() => import("./pages/HomePage"));
@@ -39,7 +43,12 @@ const DownloadsPage = lazy(() => import("./pages/DownloadsPage"));
 import { checkForUpdates } from "./utils/updates";
 
 export default function App() {
-  // apiKey loaded async from secure storage (OS keychain)
+  // Firebase auth state
+  const [firebaseUser, setFirebaseUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [authPage, setAuthPage] = useState("login"); // 'login' | 'signup'
+  
+  // apiKey loaded async from secure storage (OS keychain) or Firestore
   const [apiKey, setApiKey] = useState(null);
   const [apiKeyLoaded, setApiKeyLoaded] = useState(false);
   const [skipped, setSkipped] = useState(false);
@@ -316,16 +325,50 @@ export default function App() {
   const [highlightDownload, setHighlightDownload] = useState(null);
   const [closeConfirm, setCloseConfirm] = useState(null); // { count }
 
-  // ── Load API key from secure storage on startup ──
+  // ── Initialize Firebase Auth and load TMDB key on startup ────────────────
   useEffect(() => {
     let mounted = true;
-    secureStorage.get("apikey").then((val) => {
+
+    // Handle OAuth redirect results (for Electron apps)
+    const handleRedirect = async () => {
+      const result = await handleOAuthRedirect();
+      if (result.success && result.user) {
+        // Auth state listener will pick up the user
+      } else if (result.error && result.error !== "No redirect result") {
+        console.warn("OAuth redirect error:", result.error);
+      }
+    };
+    
+    handleRedirect();
+
+    // Listen to Firebase auth state
+    const unsubscribeAuth = onAuthStateChanged(async (user) => {
       if (!mounted) return;
-      setApiKey(val || null);
-      setApiKeyLoaded(true);
+
+      setFirebaseUser(user);
+
+      if (user) {
+        // User logged in: migrate localStorage key to Firestore and load from Firestore
+        await migrateTmdbKeyToFirestore();
+        const key = await getTmdbKey();
+        if (mounted) {
+          setApiKey(key || null);
+          setApiKeyLoaded(true);
+          setAuthLoading(false);
+        }
+      } else {
+        // User not logged in: just set loading to false, don't load API key yet
+        if (mounted) {
+          setApiKey(null);
+          setApiKeyLoaded(false);
+          setAuthLoading(false);
+        }
+      }
     });
+
     return () => {
       mounted = false;
+      unsubscribeAuth();
     };
   }, []);
 
@@ -868,7 +911,28 @@ export default function App() {
     [navigate],
   );
 
-  if (!apiKeyLoaded) return null; // wait for secure storage to resolve
+  // Wait for auth and API key to load
+  if (authLoading) return null;
+  
+  // Show login/signup if not authenticated
+  if (!firebaseUser) {
+    if (authPage === "signup") {
+      return <SignupPage 
+        onSignupSuccess={() => {
+          // User signed up, auth listener will update firebaseUser
+        }}
+        onSwitchToLogin={() => setAuthPage("login")}
+      />;
+    }
+    return <LoginPage 
+      onLoginSuccess={() => {
+        // User logged in, auth listener will update firebaseUser
+      }}
+      onSwitchToSignup={() => setAuthPage("signup")}
+    />;
+  }
+
+  if (!apiKeyLoaded) return null; // wait for API key to load
   if (!apiKey && !skipped)
     return <SetupScreen onSave={saveApiKey} onSkip={() => setSkipped(true)} />;
 
@@ -886,6 +950,13 @@ export default function App() {
           canGoBack={navStack.length > 0}
           onBack={navigateBack}
           onShowShortcuts={() => setShowShortcuts(true)}
+          onLogout={async () => {
+            await signOut();
+            setFirebaseUser(null);
+            setApiKey(null);
+            setApiKeyLoaded(false);
+            setAuthPage("login");
+          }}
         />
 
         <div className="main">

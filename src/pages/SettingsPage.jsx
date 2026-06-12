@@ -28,6 +28,12 @@ import {
 } from "../utils/homeLayout";
 import { collectBackupData, restoreBackupData } from "../utils/backup";
 import { formatBytes } from "../utils/storage";
+import {
+  validateTmdbKey,
+  getValidationErrorMessage,
+  saveTmdbKey,
+  deleteTmdbKey,
+} from "../services/tmdbKeyService";
 
 // ── Custom Select ─────────────────────────────────────────────────────────────
 function SettingsSelect({ value, onChange, options, style }) {
@@ -3118,6 +3124,108 @@ function SettingsTopBar({ sectionRefs, contentRef }) {
   );
 }
 
+// ── TMDB API Key Manager ──────────────────────────────────────────────────────
+function TmdbApiKeyManager({ apiKey, onChangeApiKey }) {
+  const [testingKey, setTestingKey] = useState(null);
+  const [testStatus, setTestStatus] = useState(null); // null | { ok: bool, msg: string }
+  const [isTesting, setIsTesting] = useState(false);
+
+  const handleTestKey = async () => {
+    if (!apiKey || !apiKey.trim()) {
+      setTestStatus({ ok: false, msg: "No key to test" });
+      return;
+    }
+    setIsTesting(true);
+    setTestStatus(null);
+    try {
+      const result = await validateTmdbKey(apiKey);
+      if (result.ok) {
+        setTestStatus({ ok: true, msg: "✓ API key is valid and working" });
+      } else {
+        const errMsg = getValidationErrorMessage(result.reason, result.status);
+        setTestStatus({ ok: false, msg: `✕ ${errMsg.title}` });
+      }
+    } catch (e) {
+      setTestStatus({
+        ok: false,
+        msg: `✕ ${e.message || "Failed to test key"}`,
+      });
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
+  const handleRemoveKey = async () => {
+    if (confirm("Remove the saved TMDB API key?")) {
+      await deleteTmdbKey();
+      onChangeApiKey?.();
+    }
+  };
+
+  return (
+    <div>
+      <div
+        style={{
+          display: "flex",
+          gap: 12,
+          alignItems: "center",
+          flexWrap: "wrap",
+          marginBottom: 12,
+        }}
+      >
+        <code
+          style={{
+            fontSize: 13,
+            color: "var(--text2)",
+            background: "var(--surface2)",
+            padding: "6px 14px",
+            borderRadius: 6,
+            border: "1px solid var(--border)",
+          }}
+        >
+          {apiKey ? apiKey.slice(0, 8) + "••••••••••••••••" : "(not set)"}
+        </code>
+        <button className="btn btn-ghost" onClick={onChangeApiKey}>
+          Change API Token
+        </button>
+        {apiKey && (
+          <>
+            <button
+              className="btn btn-ghost"
+              disabled={isTesting}
+              onClick={handleTestKey}
+              style={{ opacity: isTesting ? 0.6 : 1 }}
+            >
+              {isTesting ? "Testing…" : "Test Key"}
+            </button>
+            <button
+              className="btn btn-ghost"
+              onClick={handleRemoveKey}
+              style={{
+                color: "var(--red)",
+              }}
+            >
+              Remove Key
+            </button>
+          </>
+        )}
+      </div>
+      {testStatus && (
+        <div
+          style={{
+            fontSize: 13,
+            fontWeight: 500,
+            color: testStatus.ok ? "#48c774" : "var(--red)",
+            marginTop: 8,
+          }}
+        >
+          {testStatus.msg}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function SettingsPage({
   apiKey,
@@ -3447,30 +3555,7 @@ export default function SettingsPage({
               Used to fetch movie and TV metadata, posters, ratings, and cast
               info from The Movie Database.
             </div>
-            <div
-              style={{
-                display: "flex",
-                gap: 12,
-                alignItems: "center",
-                flexWrap: "wrap",
-              }}
-            >
-              <code
-                style={{
-                  fontSize: 13,
-                  color: "var(--text2)",
-                  background: "var(--surface2)",
-                  padding: "6px 14px",
-                  borderRadius: 6,
-                  border: "1px solid var(--border)",
-                }}
-              >
-                {apiKey ? apiKey.slice(0, 8) + "••••••••••••••••" : "(not set)"}
-              </code>
-              <button className="btn btn-ghost" onClick={onChangeApiKey}>
-                Change API Token
-              </button>
-            </div>
+            <TmdbApiKeyManager apiKey={apiKey} onChangeApiKey={onChangeApiKey} />
           </div>
 
           <Divider />
