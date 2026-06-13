@@ -1,110 +1,106 @@
 import { useState, useEffect, useMemo } from "react";
-
-import Loader from "../components/load";
-import SectionRow from "../components/SectionRow";
-import { BookmarkFillIcon, BookmarkIcon, PlayIcon, StarIcon } from "../components/Icons";
 import { imgUrl, tmdbFetch } from "../utils/api";
+import { BookmarkIcon, BookmarkFillIcon, PlayIcon, StarIcon } from "../components/Icons";
+import NeoRow from "../components/NeoRow";
 
 const CATEGORY_CONFIG = [
-  { key: "trending", title: "Trending Anime", path: "/discover/tv?with_genres=16&with_original_language=ja&sort_by=popularity.desc&page=1" },
-  { key: "newReleases", title: "New Anime", path: "/discover/tv?with_genres=16&with_original_language=ja&sort_by=first_air_date.desc&page=1" },
-  { key: "topRated", title: "Top Rated Anime", path: "/discover/tv?with_genres=16&with_original_language=ja&sort_by=vote_average.desc&page=1" },
-  { key: "action", title: "Action Anime", path: "/discover/tv?with_genres=16,28&with_original_language=ja&sort_by=popularity.desc&page=1" },
-  { key: "fantasy", title: "Fantasy Anime", path: "/discover/tv?with_genres=16,14&with_original_language=ja&sort_by=popularity.desc&page=1" },
-  { key: "romance", title: "Romance Anime", path: "/discover/tv?with_genres=16,10749&with_original_language=ja&sort_by=popularity.desc&page=1" },
-  { key: "shounen", title: "Shounen Favorites", path: "/discover/tv?with_genres=16,35&with_original_language=ja&sort_by=popularity.desc&page=1" },
+  { key: "trending",    title: "Trending Anime",     path: "/discover/tv?with_genres=16&with_original_language=ja&sort_by=popularity.desc&page=1" },
+  { key: "newReleases", title: "New Anime",          path: "/discover/tv?with_genres=16&with_original_language=ja&sort_by=first_air_date.desc&page=1" },
+  { key: "topRated",    title: "Top Rated Anime",    path: "/discover/tv?with_genres=16&with_original_language=ja&sort_by=vote_average.desc&vote_count.gte=200&page=1" },
+  { key: "action",      title: "Action Anime",       path: "/discover/tv?with_genres=16,28&with_original_language=ja&sort_by=popularity.desc&page=1" },
+  { key: "fantasy",     title: "Fantasy Anime",      path: "/discover/tv?with_genres=16,14&with_original_language=ja&sort_by=popularity.desc&page=1" },
+  { key: "romance",     title: "Romance Anime",      path: "/discover/tv?with_genres=16,10749&with_original_language=ja&sort_by=popularity.desc&page=1" },
+  { key: "shounen",     title: "Shounen Favorites",  path: "/discover/tv?with_genres=16,35&with_original_language=ja&sort_by=popularity.desc&page=1" },
 ];
 
-function AnimeCarouselBanner({ items = [], featured, onSelect, onToggleSave, isSaved }) {
-  const colours = [
-    "142, 249, 252",
-    "142, 252, 204",
-    "215, 252, 142",
-    "252, 208, 142",
-    "252, 142, 142",
-    "252, 142, 239",
-    "204, 142, 252",
-    "142, 202, 252",
-  ];
-
-  const carouselItems = items.slice(0, 9);
-  const title = featured?.name || featured?.title || "Anime";
-  const year = (featured?.first_air_date || featured?.release_date || "").slice(0, 4);
-  const rating = featured?.vote_average ? featured.vote_average.toFixed(1) : null;
-  const backdrop = featured?.backdrop_path || featured?.poster_path;
+// ── Anime Hero: GPU-safe, card cluster visual ────────────────────────────
+function AnimeHero({ hero, items = [], onSelect, onToggleSave, isSaved }) {
+  if (!hero) return null;
+  const title = hero.name || hero.title || "Anime";
+  const year = (hero.first_air_date || "").slice(0, 4);
+  const rating = hero.vote_average ? hero.vote_average.toFixed(1) : null;
+  const backdrop = hero.backdrop_path || hero.poster_path;
+  const clusterItems = items.slice(0, 3);
 
   return (
-    <section className="anime-banner">
+    <section className="neo-anime-hero">
       {backdrop && (
         <div
-          className="anime-banner__backdrop"
+          className="neo-anime-hero__backdrop"
           style={{ backgroundImage: `url(${imgUrl(backdrop, "original")})` }}
         />
       )}
-      <div className="anime-banner__shade" />
 
-      <div className="anime-banner__content">
-        <p className="anime-banner__eyebrow">Anime Showcase</p>
-        <h1 className="anime-banner__title">{title}</h1>
-        <div className="anime-banner__meta">
+      <div className="neo-anime-hero__content">
+        <p className="neo-anime-hero__eyebrow">Anime Showcase</p>
+        <h1 className="neo-anime-hero__title">{title}</h1>
+        <div className="neo-anime-hero__meta">
           {rating && (
-            <span className="anime-banner__rating">
-              <StarIcon size={15} />
-              {rating}
+            <span className="neo-anime-hero__chip">
+              <StarIcon size={12} /> {rating}
             </span>
           )}
-          {year && <span>{year}</span>}
-          <span>Series</span>
+          {year && <span className="neo-anime-hero__chip">{year}</span>}
+          <span className="neo-anime-hero__chip">Series</span>
         </div>
-        {featured?.overview && (
-          <p className="anime-banner__overview">{featured.overview}</p>
+        {hero.overview && (
+          <p className="neo-anime-hero__overview">{hero.overview}</p>
         )}
-        <div className="anime-banner__actions">
-          <button className="anime-banner__button anime-banner__button--play" onClick={() => onSelect?.(featured)}>
-            <PlayIcon />
-            Play
+        <div className="neo-anime-hero__actions">
+          <button className="neo-hero-btn neo-hero-btn--anime" onClick={() => onSelect?.(hero)}>
+            <PlayIcon /> Watch Now
           </button>
-          <button className="anime-banner__button" onClick={() => onToggleSave?.(featured)}>
-            {isSaved?.(featured) ? <BookmarkFillIcon /> : <BookmarkIcon />}
-            My List
+          <button className="neo-hero-btn neo-hero-btn--secondary" onClick={() => onToggleSave?.(hero)}>
+            {isSaved?.(hero) ? <BookmarkFillIcon /> : <BookmarkIcon />}
+            {isSaved?.(hero) ? "Saved" : "My List"}
           </button>
         </div>
       </div>
 
-      <div className="anime-banner__carousel" aria-label="Featured anime carousel">
-        <div className="anime-banner__carousel-inner" style={{ ['--quantity']: carouselItems.length }}>
-          {carouselItems.map((anime, i) => {
-            const offset = i - (carouselItems.length - 1) / 2;
-            const distanceFromCenter = Math.abs(offset);
-            const poster = anime.poster_path ? imgUrl(anime.poster_path, "w500") : null;
-
-            return (
-              <button
-                key={anime.id || i}
-                className="anime-banner__card"
-                style={{
-                  ['--color-card']: colours[i % colours.length],
-                  ['--x']: `${offset * 126}px`,
-                  ['--mobile-x']: `${offset * 72}px`,
-                  ['--rotate']: `${offset * -6}deg`,
-                  ['--compact-rotate']: `${offset * -4}deg`,
-                  ['--hover-rotate']: `${offset * -1.5}deg`,
-                  ['--scale']: Math.max(0.78, 1 - distanceFromCenter * 0.032),
-                  ['--z']: carouselItems.length - Math.round(distanceFromCenter),
-                }}
-                onClick={() => onSelect?.(anime)}
-                aria-label={`Open ${anime.name || anime.title || "anime"}`}
-              >
-                <span
-                  className="anime-banner__poster"
-                  style={poster ? { backgroundImage: `url(${poster})` } : { background: "rgba(255,255,255,0.05)" }}
-                />
-              </button>
-            );
-          })}
-        </div>
+      <div className="neo-anime-hero__cards">
+        {clusterItems.map((item, i) => {
+          const img = item.poster_path;
+          if (!img) return null;
+          return (
+            <button key={item.id} className="neo-anime-poster" onClick={() => onSelect?.(item)}>
+              <img src={imgUrl(img, "w500")} alt="" loading={i === 0 ? "eager" : "lazy"} decoding="async" />
+            </button>
+          );
+        })}
       </div>
     </section>
+  );
+}
+
+// ── Anime Top 10 ─────────────────────────────────────────────────────────
+function Top10Row({ items = [], onSelect }) {
+  if (!items.length) return null;
+  return (
+    <div className="neo-section">
+      <div className="neo-section__header">
+        <h2 className="neo-section__title">Top 10 Anime</h2>
+        <span className="neo-section__badge" style={{ color: "#c084fc", borderColor: "rgba(192,132,252,0.4)" }}>CHARTS</span>
+      </div>
+      <div className="neo-top10-row">
+        {items.slice(0, 10).map((item, i) => (
+          <div key={item.id} className="neo-top10-item" onClick={() => onSelect?.(item)}>
+            <span className="neo-top10-num">{i + 1}</span>
+            <div className="neo-top10-card">
+              {item.poster_path ? (
+                <img
+                  src={imgUrl(item.poster_path, "w342")}
+                  alt={item.name || item.title}
+                  loading="lazy"
+                  decoding="async"
+                />
+              ) : (
+                <div style={{ width: "100%", height: "100%", background: "var(--surface2)" }} />
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -135,130 +131,55 @@ export default function AnimePage({
     let cancelled = false;
     setLoading(true);
 
-    async function load() {
-      try {
-        const fetches = CATEGORY_CONFIG.map((config) => tmdbFetch(config.path, apiKey));
-        const results = await Promise.all(fetches);
+    Promise.all(CATEGORY_CONFIG.map((c) => tmdbFetch(c.path, apiKey)))
+      .then((results) => {
         if (cancelled) return;
         const next = {};
-        CATEGORY_CONFIG.forEach((config, index) => {
-          next[config.key] = (results[index].results || []).slice(0, 12).map((item) => ({ ...item, media_type: "tv" }));
+        CATEGORY_CONFIG.forEach((c, i) => {
+          next[c.key] = (results[i].results || [])
+            .slice(0, 14)
+            .map((item) => ({ ...item, media_type: "tv" }));
         });
         setSections(next);
-        setHero(next.topRated?.[0] || next.topRated?.[0] || null);
-      } catch (e) {
-        console.warn("AnimePage load failed", e);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
+        setHero(next.topRated?.[0] || next.trending?.[0] || null);
+      })
+      .catch((e) => console.warn("AnimePage load failed", e))
+      .finally(() => { if (!cancelled) setLoading(false); });
 
-    load();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [apiKey, offline]);
 
+  const rowProps = { onSelect, progress, watched, onToggleSave, isSaved };
+
   return (
-    <>
-      {hero && (
-        <AnimeCarouselBanner
-          items={sections.topRated || []}
-          featured={hero}
-          onSelect={onSelect}
-          onToggleSave={onToggleSave}
-          isSaved={isSaved}
-        />
+    <div className="neo-page">
+      <AnimeHero
+        hero={hero}
+        items={sections.topRated || sections.trending || []}
+        onSelect={onSelect}
+        onToggleSave={onToggleSave}
+        isSaved={isSaved}
+      />
+
+      <div className="neo-page-header">
+        <p className="neo-page-eyebrow" style={{ color: "#c084fc" }}>Anime</p>
+        <h1 className="neo-page-title">ANIME</h1>
+        <p className="neo-page-subtitle">The best of Japanese animation, curated for you.</p>
+      </div>
+
+      <Top10Row items={sections.topRated || []} onSelect={onSelect} />
+
+      {continueWatching.length > 0 && (
+        <NeoRow title="Continue Watching" items={continueWatching} badge="IN PROGRESS" {...rowProps} />
       )}
 
-      <div className="page-shell anime-page-shell">
-
-        <div className="page-sections">
-        {loading && (
-          <div className="page-loading">
-            <Loader />
-          </div>
-        )}
-        
-        <SectionRow
-          title="Trending Anime"
-          items={sections.trending}
-          onSelect={onSelect}
-          progress={progress}
-          watched={watched}
-          onMarkWatched={onMarkWatched}
-          onMarkUnwatched={onMarkUnwatched}
-          onToggleSave={onToggleSave}
-          isSaved={isSaved}
-        />
-        <SectionRow
-          title="Top Rated Anime"
-          items={sections.topRated}
-          onSelect={onSelect}
-          progress={progress}
-          watched={watched}
-          onMarkWatched={onMarkWatched}
-          onMarkUnwatched={onMarkUnwatched}
-          onToggleSave={onToggleSave}
-          isSaved={isSaved}
-        />
-        <SectionRow
-          title="New Anime"
-          items={sections.newReleases}
-          onSelect={onSelect}
-          progress={progress}
-          watched={watched}
-          onMarkWatched={onMarkWatched}
-          onMarkUnwatched={onMarkUnwatched}
-          onToggleSave={onToggleSave}
-          isSaved={isSaved}
-        />
-        <SectionRow
-          title="Action Anime"
-          items={sections.action}
-          onSelect={onSelect}
-          progress={progress}
-          watched={watched}
-          onMarkWatched={onMarkWatched}
-          onMarkUnwatched={onMarkUnwatched}
-          onToggleSave={onToggleSave}
-          isSaved={isSaved}
-        />
-        <SectionRow
-          title="Fantasy Anime"
-          items={sections.fantasy}
-          onSelect={onSelect}
-          progress={progress}
-          watched={watched}
-          onMarkWatched={onMarkWatched}
-          onMarkUnwatched={onMarkUnwatched}
-          onToggleSave={onToggleSave}
-          isSaved={isSaved}
-        />
-        <SectionRow
-          title="Romance Anime"
-          items={sections.romance}
-          onSelect={onSelect}
-          progress={progress}
-          watched={watched}
-          onMarkWatched={onMarkWatched}
-          onMarkUnwatched={onMarkUnwatched}
-          onToggleSave={onToggleSave}
-          isSaved={isSaved}
-        />
-        <SectionRow
-          title="Shounen Favorites"
-          items={sections.shounen}
-          onSelect={onSelect}
-          progress={progress}
-          watched={watched}
-          onMarkWatched={onMarkWatched}
-          onMarkUnwatched={onMarkUnwatched}
-          onToggleSave={onToggleSave}
-          isSaved={isSaved}
-        />
-      </div>
+      <NeoRow title="Trending Now" items={sections.trending} badge="🔥" loading={loading} {...rowProps} />
+      <NeoRow title="New Anime" items={sections.newReleases} badge="NEW" loading={loading && !sections.newReleases} {...rowProps} />
+      <NeoRow title="Top Rated All Time" items={sections.topRated} badge="★ RATED" loading={loading && !sections.topRated} {...rowProps} />
+      <NeoRow title="Action" items={sections.action} loading={loading && !sections.action} {...rowProps} />
+      <NeoRow title="Fantasy" items={sections.fantasy} loading={loading && !sections.fantasy} {...rowProps} />
+      <NeoRow title="Romance" items={sections.romance} loading={loading && !sections.romance} {...rowProps} />
+      <NeoRow title="Shounen Favorites" items={sections.shounen} loading={loading && !sections.shounen} {...rowProps} />
     </div>
-  </>
   );
 }

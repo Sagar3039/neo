@@ -1,84 +1,113 @@
-import { useState, useEffect, useMemo } from "react";
-import Loader from "../components/load";
-import SectionRow from "../components/SectionRow";
-import { BookmarkFillIcon, BookmarkIcon, PlayIcon, StarIcon } from "../components/Icons";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { imgUrl, tmdbFetch } from "../utils/api";
+import { BookmarkIcon, BookmarkFillIcon, PlayIcon, StarIcon } from "../components/Icons";
+import NeoRow from "../components/NeoRow";
 
 const CATEGORY_CONFIG = [
-  { key: "trending", title: "Trending Movies", path: "/trending/movie/week" },
-  { key: "popular", title: "Popular Movies", path: "/movie/popular?page=1" },
-  { key: "topRated", title: "Top Rated Movies", path: "/movie/top_rated?page=1" },
-  { key: "action", title: "Action Movies", path: "/discover/movie?with_genres=28&page=1" },
-  { key: "comedy", title: "Comedy Movies", path: "/discover/movie?with_genres=35&page=1" },
-  { key: "horror", title: "Horror Movies", path: "/discover/movie?with_genres=27&page=1" },
-  { key: "sciFi", title: "Sci-Fi Movies", path: "/discover/movie?with_genres=878&page=1" },
-  { key: "newReleases", title: "New Releases", path: "/movie/now_playing?page=1" },
+  { key: "trending",    title: "Trending Movies",   path: "/trending/movie/week" },
+  { key: "popular",    title: "Popular Movies",     path: "/movie/popular?page=1" },
+  { key: "topRated",   title: "Top Rated",          path: "/movie/top_rated?page=1" },
+  { key: "action",     title: "Action",             path: "/discover/movie?with_genres=28&page=1" },
+  { key: "comedy",     title: "Comedy",             path: "/discover/movie?with_genres=35&page=1" },
+  { key: "horror",     title: "Horror",             path: "/discover/movie?with_genres=27&page=1" },
+  { key: "sciFi",      title: "Sci-Fi",             path: "/discover/movie?with_genres=878&page=1" },
+  { key: "newReleases",title: "New Releases",       path: "/movie/now_playing?page=1" },
 ];
 
-function MovieSpotlightHero({ hero, items = [], onSelect, onToggleSave, isSaved }) {
-  const title = hero?.title || hero?.name || "Featured Movie";
-  const year = (hero?.release_date || hero?.first_air_date || "").slice(0, 4);
-  const rating = hero?.vote_average ? hero.vote_average.toFixed(1) : null;
-  const heroArt = hero?.backdrop_path || hero?.poster_path;
-  const posterWall = items.slice(1, 7);
+// ── Hero: GPU-safe (no backdrop-filter, no CSS filter on image) ──────────
+function MoviesHero({ hero, items = [], onSelect, onToggleSave, isSaved }) {
+  if (!hero) return null;
+  const title = hero.title || hero.name || "Featured Movie";
+  const year = (hero.release_date || "").slice(0, 4);
+  const rating = hero.vote_average ? hero.vote_average.toFixed(1) : null;
+  const heroArt = hero.backdrop_path || hero.poster_path;
+  const wallItems = items.slice(1, 5);
 
   return (
-    <section className="movie-showcase-hero">
+    <section className="neo-movies-hero">
       {heroArt && (
         <div
-          className="movie-showcase-hero__backdrop"
+          className="neo-movies-hero__backdrop"
           style={{ backgroundImage: `url(${imgUrl(heroArt, "original")})` }}
         />
       )}
-      <div className="movie-showcase-hero__grain" />
-      <div className="movie-showcase-hero__content">
-        <p className="movie-showcase-hero__eyebrow">Now Playing</p>
-        <h1>{title}</h1>
-        <div className="movie-showcase-hero__meta">
+      <div className="neo-movies-hero__content">
+        <p className="neo-movies-hero__eyebrow">Now Playing</p>
+        <h1 className="neo-movies-hero__title">{title}</h1>
+        <div className="neo-movies-hero__meta">
           {rating && (
-            <span>
-              <StarIcon size={15} />
-              {rating}
+            <span className="neo-movies-hero__chip">
+              <StarIcon size={12} /> {rating}
             </span>
           )}
-          {year && <span>{year}</span>}
-          <span>Cinematic Feature</span>
+          {year && <span className="neo-movies-hero__chip">{year}</span>}
+          <span className="neo-movies-hero__chip">Movie</span>
         </div>
-        {hero?.overview && <p className="movie-showcase-hero__overview">{hero.overview}</p>}
-        <div className="movie-showcase-hero__actions">
-          <button className="movie-showcase-hero__button movie-showcase-hero__button--play" onClick={() => onSelect?.(hero)}>
-            <PlayIcon />
-            Play
+        {hero.overview && (
+          <p className="neo-movies-hero__overview">{hero.overview}</p>
+        )}
+        <div className="neo-movies-hero__actions">
+          <button className="neo-hero-btn neo-hero-btn--play" onClick={() => onSelect?.(hero)}>
+            <PlayIcon /> Play
           </button>
-          <button className="movie-showcase-hero__button" onClick={() => onToggleSave?.(hero)}>
+          <button className="neo-hero-btn neo-hero-btn--secondary" onClick={() => onToggleSave?.(hero)}>
             {isSaved?.(hero) ? <BookmarkFillIcon /> : <BookmarkIcon />}
-            My List
+            {isSaved?.(hero) ? "Saved" : "My List"}
           </button>
         </div>
       </div>
 
-      <div className="movie-showcase-hero__stage">
-        {hero?.poster_path && (
-          <button className="movie-showcase-hero__poster movie-showcase-hero__poster--main" onClick={() => onSelect?.(hero)}>
-            <img src={imgUrl(hero.poster_path, "w500")} alt="" />
+      <div className="neo-movies-hero__stage">
+        {hero.poster_path && (
+          <button className="neo-movies-hero__poster-main" onClick={() => onSelect?.(hero)}>
+            <img src={imgUrl(hero.poster_path, "w500")} alt="" loading="eager" decoding="async" />
           </button>
         )}
-        <div className="movie-showcase-hero__poster-wall">
-          {posterWall.map((item, index) => (
-            item.poster_path ? (
-              <button
-                key={item.id}
-                className="movie-showcase-hero__poster movie-showcase-hero__poster--tile"
-                style={{ ['--delay']: `${index * 90}ms` }}
-                onClick={() => onSelect?.(item)}
-              >
-                <img src={imgUrl(item.poster_path, "w342")} alt="" />
-              </button>
-            ) : null
-          ))}
-        </div>
+        {wallItems.length > 0 && (
+          <div className="neo-movies-hero__poster-wall">
+            {wallItems.map((item) =>
+              item.poster_path ? (
+                <button key={item.id} className="neo-movies-hero__poster-tile" onClick={() => onSelect?.(item)}>
+                  <img src={imgUrl(item.poster_path, "w342")} alt="" loading="lazy" decoding="async" />
+                </button>
+              ) : null
+            )}
+          </div>
+        )}
       </div>
     </section>
+  );
+}
+
+// ── Top 10 Row ───────────────────────────────────────────────────────────
+function Top10Row({ items = [], onSelect }) {
+  if (!items.length) return null;
+  return (
+    <div className="neo-section">
+      <div className="neo-section__header">
+        <h2 className="neo-section__title">Top 10 Today</h2>
+        <span className="neo-section__badge">CHARTS</span>
+      </div>
+      <div className="neo-top10-row">
+        {items.slice(0, 10).map((item, i) => (
+          <div key={item.id} className="neo-top10-item" onClick={() => onSelect?.(item)}>
+            <span className="neo-top10-num">{i + 1}</span>
+            <div className="neo-top10-card">
+              {item.poster_path ? (
+                <img
+                  src={imgUrl(item.poster_path, "w342")}
+                  alt={item.title || item.name}
+                  loading="lazy"
+                  decoding="async"
+                />
+              ) : (
+                <div style={{ width: "100%", height: "100%", background: "var(--surface2)" }} />
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -99,213 +128,93 @@ export default function MoviesPage({
   const [hero, setHero] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  // ── Parallel fetch — no waterfall ──────────────────────────────────────
   useEffect(() => {
     if (!apiKey || offline) return;
     let cancelled = false;
     setLoading(true);
 
-    async function load() {
-      try {
-        const fetches = CATEGORY_CONFIG.map((config) => tmdbFetch(config.path, apiKey));
-        const results = await Promise.all(fetches);
+    Promise.all(CATEGORY_CONFIG.map((c) => tmdbFetch(c.path, apiKey)))
+      .then((results) => {
         if (cancelled) return;
         const next = {};
-        CATEGORY_CONFIG.forEach((config, index) => {
-          next[config.key] = (results[index].results || []).slice(0, 12).map((item) => ({ ...item, media_type: "movie" }));
+        CATEGORY_CONFIG.forEach((c, i) => {
+          next[c.key] = (results[i].results || [])
+            .slice(0, 14)
+            .map((item) => ({ ...item, media_type: "movie" }));
         });
         setSections(next);
         setHero(next.trending?.[0] || next.popular?.[0] || null);
-      } catch (e) {
-        console.warn("MoviesPage load failed", e);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
+      })
+      .catch((e) => console.warn("MoviesPage load failed", e))
+      .finally(() => { if (!cancelled) setLoading(false); });
 
-    load();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [apiKey, offline]);
 
+  // ── Recommendations — separate effect so hero loads first ──────────────
   useEffect(() => {
     if (!apiKey || offline || !history?.length) return;
-    const movieHistory = history.filter((item) => item.media_type === "movie");
+    const movieHistory = history.filter((i) => i.media_type === "movie");
     if (!movieHistory.length) return;
     let cancelled = false;
 
-    async function loadRecommendations() {
-      const sources = movieHistory.slice(0, 3);
-      const arrays = await Promise.all(
-        sources.map(async (source) => {
-          try {
-            const data = await tmdbFetch(`/movie/${source.id}/recommendations`, apiKey);
-            return (data.results || []).map((item) => ({ ...item, media_type: "movie" }));
-          } catch {
-            return [];
-          }
-        }),
-      );
+    Promise.all(
+      movieHistory.slice(0, 3).map((src) =>
+        tmdbFetch(`/movie/${src.id}/recommendations`, apiKey)
+          .then((d) => (d.results || []).map((i) => ({ ...i, media_type: "movie" })))
+          .catch(() => [])
+      )
+    ).then((arrays) => {
       if (cancelled) return;
-      const dedup = [];
       const seen = new Set();
+      const dedup = [];
       arrays.flat().forEach((item) => {
-        const key = `${item.media_type}_${item.id}`;
-        if (!seen.has(key)) {
-          seen.add(key);
-          dedup.push(item);
-        }
+        const k = `movie_${item.id}`;
+        if (!seen.has(k)) { seen.add(k); dedup.push(item); }
       });
-      setRecommended(dedup.slice(0, 12));
-    }
+      setRecommended(dedup.slice(0, 14));
+    });
 
-    loadRecommendations();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [apiKey, history, offline]);
 
-  const topPicks = useMemo(() => {
-    if (recommended.length > 0) return recommended;
-    return sections.popular || [];
-  }, [recommended, sections.popular]);
+  const topPicks = useMemo(
+    () => (recommended.length > 0 ? recommended : sections.popular || []),
+    [recommended, sections.popular]
+  );
+
+  const rowProps = { onSelect, progress, watched, onToggleSave, isSaved };
 
   return (
-    <>
-      {hero && (
-        <MovieSpotlightHero
-          hero={hero}
-          items={sections.trending || []}
-          onSelect={onSelect}
-          onToggleSave={onToggleSave}
-          isSaved={isSaved}
-        />
-      )}
+    <div className="neo-page">
+      <MoviesHero
+        hero={hero}
+        items={sections.trending || []}
+        onSelect={onSelect}
+        onToggleSave={onToggleSave}
+        isSaved={isSaved}
+      />
 
-      <div className="page-shell movies-page-shell">
-        <div className="page-header movies-page-header">
-          <div>
-            <p className="page-eyebrow">Movies</p>
-            <h1 className="page-title">Cinema-grade browsing for every title.</h1>
-          </div>
-        </div>
-
-        <div className="page-sections">
-        {loading && (
-          <div className="page-loading">
-            <Loader />
-          </div>
-        )}
-        <SectionRow
-          title="Trending Movies"
-          items={sections.trending}
-          className="movies-feature-row"
-          onSelect={onSelect}
-          progress={progress}
-          watched={watched}
-          onMarkWatched={onMarkWatched}
-          onMarkUnwatched={onMarkUnwatched}
-          onToggleSave={onToggleSave}
-          isSaved={isSaved}
-        />
-        <SectionRow
-          title="Popular Movies"
-          items={sections.popular}
-          className="movies-standard-row"
-          onSelect={onSelect}
-          progress={progress}
-          watched={watched}
-          onMarkWatched={onMarkWatched}
-          onMarkUnwatched={onMarkUnwatched}
-          onToggleSave={onToggleSave}
-          isSaved={isSaved}
-        />
-        <SectionRow
-          title="Top Rated Movies"
-          items={sections.topRated}
-          className="movies-standard-row movies-gold-row"
-          onSelect={onSelect}
-          progress={progress}
-          watched={watched}
-          onMarkWatched={onMarkWatched}
-          onMarkUnwatched={onMarkUnwatched}
-          onToggleSave={onToggleSave}
-          isSaved={isSaved}
-        />
-        <SectionRow
-          title="Action Movies"
-          items={sections.action}
-          className="movies-standard-row"
-          onSelect={onSelect}
-          progress={progress}
-          watched={watched}
-          onMarkWatched={onMarkWatched}
-          onMarkUnwatched={onMarkUnwatched}
-          onToggleSave={onToggleSave}
-          isSaved={isSaved}
-        />
-        <SectionRow
-          title="Comedy Movies"
-          items={sections.comedy}
-          className="movies-standard-row"
-          onSelect={onSelect}
-          progress={progress}
-          watched={watched}
-          onMarkWatched={onMarkWatched}
-          onMarkUnwatched={onMarkUnwatched}
-          onToggleSave={onToggleSave}
-          isSaved={isSaved}
-        />
-        <SectionRow
-          title="Horror Movies"
-          items={sections.horror}
-          className="movies-standard-row movies-horror-row"
-          onSelect={onSelect}
-          progress={progress}
-          watched={watched}
-          onMarkWatched={onMarkWatched}
-          onMarkUnwatched={onMarkUnwatched}
-          onToggleSave={onToggleSave}
-          isSaved={isSaved}
-        />
-        <SectionRow
-          title="Sci-Fi Movies"
-          items={sections.sciFi}
-          className="movies-standard-row movies-sci-fi-row"
-          onSelect={onSelect}
-          progress={progress}
-          watched={watched}
-          onMarkWatched={onMarkWatched}
-          onMarkUnwatched={onMarkUnwatched}
-          onToggleSave={onToggleSave}
-          isSaved={isSaved}
-        />
-        <SectionRow
-          title="New Releases"
-          items={sections.newReleases}
-          className="movies-standard-row"
-          onSelect={onSelect}
-          progress={progress}
-          watched={watched}
-          onMarkWatched={onMarkWatched}
-          onMarkUnwatched={onMarkUnwatched}
-          onToggleSave={onToggleSave}
-          isSaved={isSaved}
-        />
-        <SectionRow
-          title="Recommended Movies"
-          items={topPicks}
-          className="movies-standard-row"
-          onSelect={onSelect}
-          progress={progress}
-          watched={watched}
-          onMarkWatched={onMarkWatched}
-          onMarkUnwatched={onMarkUnwatched}
-          onToggleSave={onToggleSave}
-          isSaved={isSaved}
-        />
+      <div className="neo-page-header">
+        <p className="neo-page-eyebrow">Movies</p>
+        <h1 className="neo-page-title">MOVIES</h1>
+        <p className="neo-page-subtitle">Cinema-quality discovery, every title.</p>
       </div>
+
+      <Top10Row items={sections.trending || []} onSelect={onSelect} />
+
+      <NeoRow title="Trending This Week" items={sections.trending} badge="HOT" loading={loading} {...rowProps} />
+      <NeoRow title="Popular Movies" items={sections.popular} loading={loading && !sections.popular} {...rowProps} />
+      <NeoRow title="Top Rated All Time" items={sections.topRated} badge="★ RATED" loading={loading && !sections.topRated} {...rowProps} />
+      <NeoRow title="New Releases" items={sections.newReleases} badge="NEW" loading={loading && !sections.newReleases} {...rowProps} />
+      <NeoRow title="Action" items={sections.action} loading={loading && !sections.action} {...rowProps} />
+      <NeoRow title="Comedy" items={sections.comedy} loading={loading && !sections.comedy} {...rowProps} />
+      <NeoRow title="Horror" items={sections.horror} loading={loading && !sections.horror} {...rowProps} />
+      <NeoRow title="Sci-Fi" items={sections.sciFi} loading={loading && !sections.sciFi} {...rowProps} />
+      {topPicks.length > 0 && (
+        <NeoRow title="Recommended for You" items={topPicks} badge="PICK" {...rowProps} />
+      )}
     </div>
-  </>
   );
 }
