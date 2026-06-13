@@ -983,9 +983,8 @@ export default function MoviePage({
                         playerSubLang,
                       )
                 }
-                allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+                allow="autoplay; fullscreen; encrypted-media; picture-in-picture; web-share"
                 allowFullScreen
-                sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock"
                 onLoad={() => setWebviewLoading(false)}
                 onError={() => setWebviewLoading(false)}
                 style={{
