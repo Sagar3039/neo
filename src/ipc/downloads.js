@@ -3,7 +3,7 @@
 // and handles all download-related IPC handlers.
 
 const { app, ipcMain, shell, dialog, session } = require("electron");
-const { spawn } = require("child_process");
+const { spawn, spawnSync: spawnSyncFn } = require("child_process");
 const path = require("path");
 const fs = require("fs");
 const https = require("https");
@@ -242,7 +242,7 @@ function register(getMainWindow) {
           return { ok: false, error: "Invalid or unknown downloader token" };
         }
         const id = crypto.randomUUID();
-        const logPath = path.join(os.tmpdir(), `streambert_dl_${id}.log`);
+        const logPath = path.join(os.tmpdir(), `sagar_dl_${id}.log`);
 
         const entry = {
           id,
@@ -274,7 +274,7 @@ function register(getMainWindow) {
         try {
           fs.writeFileSync(
             logPath,
-            `Streambert Download Log\nName: ${name}\nURL: ${m3u8Url}\nStarted: ${new Date().toISOString()}\n${"─".repeat(60)}\n`,
+            `Sagar Download Log\nName: ${name}\nURL: ${m3u8Url}\nStarted: ${new Date().toISOString()}\n${"─".repeat(60)}\n`,
             "utf8",
           );
         } catch {}
@@ -305,6 +305,39 @@ function register(getMainWindow) {
           "-d",
           downloadPath,
         ];
+
+        // Check if yt-dlp is available on the system for Cloudflare bypass fallback
+        let ytdlpPath = null;
+        try {
+          const whichCmd = process.platform === "win32" ? "where" : "which";
+          const result = spawnSyncFn(whichCmd, ["yt-dlp"], { encoding: "utf8", timeout: 5000 });
+          if (result.status === 0 && result.stdout.trim()) {
+            ytdlpPath = result.stdout.trim().split("\n")[0].trim();
+          }
+        } catch {}
+        appendLog(`[Sagar] yt-dlp path: ${ytdlpPath || "(not found)"}`);
+
+        // Pre-write Electron session cookies for yt-dlp fallback (async, runs in parallel with vid-dl)
+        const cookiePath = path.join(os.tmpdir(), `sagar_cookies_${id}.txt`);
+        const cookiePromise = (async () => {
+          try {
+            const sess = session.defaultSession;
+            if (sess && sess.cookies) {
+              const cookies = await sess.cookies.get({});
+              const lines = ["# Netscape HTTP Cookie File"];
+              for (const c of cookies) {
+                const dom = c.domain.startsWith(".") ? c.domain : "." + c.domain;
+                lines.push(`${dom}\tTRUE\t${c.path || "/"}\t${c.secure ? "TRUE" : "FALSE"}\t${c.expirationDate ? Math.floor(c.expirationDate) : 0}\t${c.name}\t${c.value}`);
+              }
+              fs.writeFileSync(cookiePath, lines.join("\n"), "utf8");
+              appendLog(`[Sagar] Wrote ${cookies.length} session cookies to ${cookiePath}`);
+              return true;
+            }
+          } catch (e) {
+            appendLog(`[Sagar] Cookie extraction failed: ${e.message}`);
+          }
+          return false;
+        })();
 
         const proc = spawn(binaryPath, args, {
           stdio: ["ignore", "pipe", "pipe"],
@@ -534,12 +567,183 @@ function register(getMainWindow) {
           const idx = downloads.findIndex((d) => d.id === id);
           if (idx === -1) return;
 
+          // Detect Cloudflare 403 → retry with yt-dlp directly
+          const allOutput = (stderrBuf + " " + buf).toLowerCase();
+          const isCf403 =
+            code !== 0 &&
+            (allOutput.includes("403") ||
+              allOutput.includes("forbidden") ||
+              allOutput.includes("cloudflare") ||
+              allOutput.includes("anti-bot"));
+          appendLog(`[Sagar] close code=${code}, isCf403=${isCf403}, ytdlpPath=${ytdlpPath || "(none)"}`);
+          if (isCf403 && ytdlpPath) {
+            appendLog("\n[Sagar] Cloudflare 403 detected — retrying with yt-dlp + session cookies…\n");
+            downloads[idx].lastMessage = "Retrying with yt-dlp (Cloudflare bypass)…";
+            downloads[idx].status = "downloading";
+            sendProgress({ id, status: "downloading", lastMessage: downloads[idx].lastMessage });
+
+            // Wait for cookies to be written (should already be done since vid-dl ran for a few seconds)
+            cookiePromise.then((cookieFileReady) => {
+
+            const outTemplate = path.join(downloadPath, name + ".%(ext)s");
+            const ytdlpArgs = [
+              m3u8Url,
+              "-o", outTemplate,
+              "--no-part",
+              "--concurrent-fragments", "4",
+              "--retries", "10",
+              "--fragment-retries", "10",
+              "--no-check-certificates",
+              "--no-warnings",
+              "--progress",
+            ];
+            if (cookieFileReady) {
+              // Cookies are tied to the UA that solved the challenge — don't impersonate
+              ytdlpArgs.push("--cookies", cookiePath);
+            } else {
+              // No cookies available — try impersonation as a last resort
+              ytdlpArgs.push("--impersonate", "chrome");
+            }
+
+            const ytProc = spawn(ytdlpPath, ytdlpArgs, {
+              stdio: ["ignore", "pipe", "pipe"],
+            });
+            activeProcs.set(id, ytProc);
+
+            let ytBuf = "";
+            let ytStderr = "";
+
+            ytProc.stdout.on("data", (chunk) => {
+              ytBuf += chunk.toString();
+              const lines = ytBuf.split(/\r\n|\r|\n/);
+              ytBuf = lines.pop();
+              lines.forEach((l) => {
+                appendLog(l);
+                handleLine(l);
+              });
+            });
+            ytProc.stderr.on("data", (chunk) => {
+              const text = chunk.toString();
+              ytStderr += text;
+              text.split(/\r\n|\r|\n/).forEach((l) => {
+                appendLog(l);
+                handleLine(l);
+              });
+            });
+
+            ytProc.on("error", (err) => {
+              activeProcs.delete(id);
+              const i2 = downloads.findIndex((d) => d.id === id);
+              if (i2 === -1) return;
+              downloads[i2].status = "error";
+              downloads[i2].completedAt = Date.now();
+              downloads[i2].lastMessage = `yt-dlp failed: ${err.message}`;
+              appendLog(downloads[i2].lastMessage);
+              sendProgress({ id, status: "error", lastMessage: downloads[i2].lastMessage });
+            });
+
+            ytProc.on("close", (ytCode) => {
+              activeProcs.delete(id);
+              if (ytBuf.trim()) {
+                appendLog(ytBuf.trim());
+                handleLine(ytBuf.trim());
+              }
+              const i2 = downloads.findIndex((d) => d.id === id);
+              if (i2 === -1) return;
+
+              const ytStatus = ytCode === 0 ? "completed" : "error";
+              downloads[i2].status = ytStatus;
+              downloads[i2].completedAt = Date.now();
+              if (ytCode === 0) {
+                downloads[i2].progress = 100;
+                downloads[i2].logPath = null;
+                try { fs.unlinkSync(logPath); } catch {}
+              } else {
+                try {
+                  fs.appendFileSync(
+                    logPath,
+                    `${"─".repeat(60)}\nyt-dlp fallback failed: exit code ${ytCode}\nFinished: ${new Date().toISOString()}\n`,
+                    "utf8",
+                  );
+                } catch {}
+                const errorLine =
+                  ytStderr
+                    .split(/\r\n|\r|\n/)
+                    .map((l) => l.trim())
+                    .filter(Boolean)
+                    .reverse()
+                    .find((l) => /error|failed|unable|cannot|denied/i.test(l)) || "";
+                const prev = downloads[i2].lastMessage || "";
+                const base = errorLine || prev;
+                downloads[i2].lastMessage = base
+                  ? `${base} (exit ${ytCode})`
+                  : `Download failed (exit code ${ytCode})`;
+              }
+
+              // Detect output file
+              if (ytCode === 0 && !downloads[i2].filePath) {
+                try {
+                  const VIDEO_EXTS = [".mp4", ".mkv", ".webm", ".avi", ".ts", ".m4v"];
+                  const match = fs
+                    .readdirSync(downloadPath)
+                    .filter((f) => VIDEO_EXTS.some((e) => f.toLowerCase().endsWith(e)))
+                    .map((f) => ({
+                      f,
+                      mtime: fs.statSync(path.join(downloadPath, f)).mtimeMs,
+                    }))
+                    .sort((a, b) => b.mtime - a.mtime)[0];
+                  if (match) downloads[i2].filePath = path.join(downloadPath, match.f);
+                } catch {}
+              }
+
+              // Rename file
+              if (ytCode === 0 && downloads[i2].filePath) {
+                try {
+                  const ext = path.extname(downloads[i2].filePath) || ".mp4";
+                  const safeName = name.replace(/[<>:"/\\|?*\x00-\x1f]/g, "").replace(/\s+/g, " ").trim();
+                  if (safeName) {
+                    const newPath = path.join(downloadPath, safeName + ext);
+                    if (newPath !== downloads[i2].filePath) {
+                      fs.renameSync(downloads[i2].filePath, newPath);
+                      downloads[i2].filePath = newPath;
+                    }
+                  }
+                } catch {}
+              }
+
+              // Real file size
+              if (downloads[i2].filePath) {
+                try {
+                  const bytes = fs.statSync(downloads[i2].filePath).size;
+                  downloads[i2].size =
+                    bytes > 1e9 ? (bytes / 1e9).toFixed(2) + " GB"
+                      : bytes > 1e6 ? (bytes / 1e6).toFixed(1) + " MB"
+                        : bytes > 1e3 ? (bytes / 1e3).toFixed(1) + " KB"
+                          : bytes + " B";
+                } catch {}
+              }
+
+              sendProgress({
+                id,
+                name,
+                status: downloads[i2].status,
+                progress: downloads[i2].progress,
+                completedAt: downloads[i2].completedAt,
+                filePath: downloads[i2].filePath,
+                size: downloads[i2].size,
+                lastMessage: downloads[i2].lastMessage,
+                logPath: downloads[i2].logPath,
+              });
+              saveDownloads();
+            });
+            }); // end cookiePromise.then
+          } else {
+
           const status = code === 0 ? "completed" : "error";
           downloads[idx].status = status;
           downloads[idx].completedAt = Date.now();
           if (code === 0) {
             downloads[idx].progress = 100;
-            // Success: delete log file, clear logPath
             downloads[idx].logPath = null;
             try {
               fs.unlinkSync(logPath);
@@ -553,7 +757,6 @@ function register(getMainWindow) {
                 "utf8",
               );
             } catch {}
-            // Extract most meaningful error line from stderr
             const errorLine =
               stderrBuf
                 .split(/\r\n|\r|\n/)
@@ -708,6 +911,7 @@ function register(getMainWindow) {
             logPath: downloads[idx].logPath,
           });
           saveDownloads();
+          } // end else (non-CF403 path)
         });
 
         return { ok: true, id };

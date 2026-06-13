@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Neo</string>
-    <string name="title_activity_main">Neo</string>
-    <string name="package_name">com.sagar.neo</string>
-    <string name="custom_url_scheme">com.sagar.neo</string>
+    <string name="app_name">Sagar</string>
+    <string name="title_activity_main">Sagar</string>
+    <string name="package_name">com.sagar.streaming</string>
+    <string name="custom_url_scheme">com.sagar.streaming</string>
 </resources>

@@ -2,7 +2,7 @@
 // Single source of truth for which keys are included in backups.
 // Used by manual export/import (SettingsPage) and scheduled backups (App.jsx).
 
-const PREFIX = "streambert_";
+const PREFIX = "sagar_";
 
 // All localStorage keys (without prefix) that are included in backups
 export const BACKUP_KEYS = [

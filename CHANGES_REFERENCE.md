@@ -86,7 +86,7 @@ useEffect(() => {
 **OLD**:
 ```javascript
 import { useState, useEffect, useRef } from "react";
-import { NeoLogo, PlayIcon } from "./Icons";
+import { SagarLogo, PlayIcon } from "./Icons";
 
 const TMDB_BASE = "https://api.themoviedb.org/3";
 
@@ -102,7 +102,7 @@ function errorMessage(reason, status) {
 **NEW**:
 ```javascript
 import { useState, useEffect, useRef } from "react";
-import { NeoLogo, PlayIcon } from "./Icons";
+import { SagarLogo, PlayIcon } from "./Icons";
 import { validateTmdbKey, getValidationErrorMessage, saveTmdbKey } from "../services/tmdbKeyService";
 ```
 

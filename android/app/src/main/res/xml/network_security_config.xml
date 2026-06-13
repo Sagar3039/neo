@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    Network Security Config for Neo Android
+    Network Security Config for Sagar Android
     - Allows cleartext (HTTP) traffic to all domains (needed for some embed players)
     - Trusts all CA certificates (system + user) so player CDNs load properly
     - Required for: videasy, vidsrc, vidking embed players in Capacitor WebView

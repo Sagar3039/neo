@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { imgUrl } from "../utils/api";
 import {
-  NeoLogo,
+  SagarLogo,
   HomeIcon,
   SearchIcon,
   HistoryIcon,
@@ -103,9 +103,9 @@ export default function Sidebar({
       <div
         className="sidebar-logo"
         onClick={() => onNavigate("home")}
-        title="Neo"
+        title="Sagar"
       >
-        <NeoLogo />
+        <SagarLogo />
       </div>
 
       {canGoBack && (

@@ -18,7 +18,7 @@ function getGenreLabels(item) {
   return ids.slice(0, 3).map((id) => GENRE_MAP[id]).filter(Boolean);
 }
 
-const NeoCard = memo(function NeoCard({
+const SagarCard = memo(function SagarCard({
   item,
   onClick,
   progress = 0,
@@ -232,4 +232,4 @@ const NeoCard = memo(function NeoCard({
   );
 });
 
-export default NeoCard;
+export default SagarCard;

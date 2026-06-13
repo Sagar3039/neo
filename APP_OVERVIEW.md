@@ -1,4 +1,4 @@
-# Streambert / Neo Netflix Theme - Application Overview
+# Sagar - Application Overview
 
 This document explains how the app works, where it gets its data from, and how to modify key parts of the app.
 

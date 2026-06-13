@@ -210,7 +210,7 @@ function register() {
         .toISOString()
         .replace(/[:.]/g, "-")
         .slice(0, 19);
-      const filename = `streambert-backup-${timestamp}.json`;
+      const filename = `sagar-backup-${timestamp}.json`;
       const fullPath = path.join(backupDir, filename);
       fs.writeFileSync(
         fullPath,
@@ -231,7 +231,7 @@ function register() {
       const keepCount = Math.max(1, Number(settings.keepCount) || 5);
       fs.readdirSync(backupDir)
         .filter(
-          (f) => f.startsWith("streambert-backup-") && f.endsWith(".json"),
+          (f) => f.startsWith("sagar-backup-") && f.endsWith(".json"),
         )
         .map((f) => ({
           name: f,

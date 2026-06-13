@@ -18,7 +18,7 @@ If you don't have an OAuth client for your Firebase app:
 
 1. Click **Create Credentials** → **OAuth 2.0 Client ID**
 2. Choose **Web application**
-3. Name it something like "NEO Streaming App"
+3. Name it something like "Sagar Streaming App"
 
 ### Step 3: Add Authorized Redirect URIs
 

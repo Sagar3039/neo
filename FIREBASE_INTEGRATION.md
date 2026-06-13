@@ -1,7 +1,7 @@
 # Firebase Integration Implementation Guide
 
 ## Overview
-This document summarizes the Firebase integration added to the Neo streaming application. The implementation includes:
+This document summarizes the Firebase integration added to the Sagar streaming application. The implementation includes:
 - Firebase Authentication
 - Firestore-based data storage for user preferences, watchlist, favorites, and playback progress
 - Persistent TMDB API key storage with Firestore/localStorage fallback

@@ -1,5 +1,5 @@
 name: Feature Request
-description: Suggest an idea for Streambert which you would like to see in a future release
+description: Suggest an idea for Sagar which you would like to see in a future release
 title: "[Feature]: "
 labels: ["enhancement"]
 
@@ -59,7 +59,7 @@ body:
 
   - type: input
     attributes:
-      label: Streambert Version
+      label: Sagar Version
       description: Which version are you using?
       placeholder: v2.2.1
     validations:

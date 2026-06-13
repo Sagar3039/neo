@@ -1,19 +1,19 @@
 import { useRef, memo, useCallback } from "react";
-import NeoCard from "./NeoCard";
+import SagarCard from "./SagarCard";
 
 /**
- * NeoRow — Horizontally-scrollable content row with Netflix-style hover expansion.
+ * SagarRow — Horizontally-scrollable content row with Netflix-style hover expansion.
  *
  * Key implementation notes:
  *  1. overflow-y:visible on track allows expanded cards to escape the row bounds
  *  2. padding-bottom + negative margin-bottom technique prevents layout shift
  *     while giving expanded panels visual room to render
- *  3. neo-row wrapper is position:relative with overflow:visible — nav buttons
+ *  3. sagar-row wrapper is position:relative with overflow:visible — nav buttons
  *     use z-index:300 to appear above expanded cards
  *  4. No JS per-frame — all hover animation via CSS transitions
- *  5. z-index promotion on .neo-row__item via CSS :hover (no React state)
+ *  5. z-index promotion on .sagar-row__item via CSS :hover (no React state)
  */
-const NeoRow = memo(function NeoRow({
+const SagarRow = memo(function SagarRow({
   title,
   items = [],
   onSelect,
@@ -78,7 +78,7 @@ const NeoRow = memo(function NeoRow({
             const key = `${mediaType}_${item.id}`;
             return (
               <div key={key} className="neo-row__item">
-                <NeoCard
+                <SagarCard
                   item={item}
                   onClick={() => onSelect?.(item)}
                   progress={progress?.[key] || 0}
@@ -102,4 +102,4 @@ const NeoRow = memo(function NeoRow({
   );
 });
 
-export default NeoRow;
+export default SagarRow;

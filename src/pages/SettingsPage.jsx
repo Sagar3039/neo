@@ -31,7 +31,6 @@ import { formatBytes } from "../utils/storage";
 import {
   validateTmdbKey,
   getValidationErrorMessage,
-  saveTmdbKey,
   deleteTmdbKey,
 } from "../services/tmdbKeyService";
 
@@ -228,7 +227,7 @@ function ResetConfirmDialog({ onConfirm, onCancel }) {
             marginBottom: 10,
           }}
         >
-          RESET STREAMBERT?
+          RESET SAGAR?
         </div>
         <div
           style={{
@@ -733,6 +732,7 @@ function HomeLayoutSection() {
     saveHomeViewMode(viewMode);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+    window.dispatchEvent(new CustomEvent("sagar:layout-changed"));
   };
 
   const rowLabels = Object.fromEntries(HOME_ROWS.map((r) => [r.id, r.label]));
@@ -1100,7 +1100,7 @@ function BackupRestoreSection({ onRestored }) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `streambert-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `sagar-backup-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -1288,7 +1288,7 @@ function AppearanceSection() {
     savedRef.current = true;
     committedRef.current = { accent, theme, customVars };
     // Notify App.jsx so playerSettings prop (accent + lang) is refreshed
-    window.dispatchEvent(new CustomEvent("streambert:player-settings-changed"));
+    window.dispatchEvent(new CustomEvent("sagar:player-settings-changed"));
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -1637,7 +1637,7 @@ function LibraryPrivacySection() {
     storage.set(STORAGE_KEYS.LIBRARY_SORT, sort);
     storage.set(STORAGE_KEYS.HISTORY_ENABLED, historyEnabled ? 1 : 0);
     window.dispatchEvent(
-      new CustomEvent("streambert:library-sort-changed", { detail: sort }),
+      new CustomEvent("sagar:library-sort-changed", { detail: sort }),
     );
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -1753,7 +1753,7 @@ function StartPageSection() {
           lineHeight: 1.6,
         }}
       >
-        Choose which page opens when you launch Streambert.
+        Choose which page opens when you launch Sagar.
       </div>
       <div
         style={{
@@ -1816,7 +1816,7 @@ function TmdbLanguageSection() {
     // Clear in-memory cache
     clearTmdbCache();
     // Notify App.jsx to re-fetch trending data immediately.
-    window.dispatchEvent(new CustomEvent("streambert:tmdb-lang-changed"));
+    window.dispatchEvent(new CustomEvent("sagar:tmdb-lang-changed"));
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -1906,7 +1906,7 @@ function SubtitleSettingsSection() {
     secureStorage.set(STORAGE_KEYS.SUBDL_API_KEY, subdlApiKey.trim());
     secureStorage.set(STORAGE_KEYS.WYZIE_API_KEY, wyzieApiKey.trim());
     // refresh playerSettings prop (subtitle lang)
-    window.dispatchEvent(new CustomEvent("streambert:player-settings-changed"));
+    window.dispatchEvent(new CustomEvent("sagar:player-settings-changed"));
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -2047,7 +2047,7 @@ function SubtitleSettingsSection() {
                 }}
                 onClick={() =>
                   window.electron?.openExternal(
-                    "https://github.com/truelockmc/streambert/wyzie-tutorial.md",
+                    "https://github.com/truelockmc/streambert/blob/main/wyzie-tutorial.md",
                   )
                 }
               >
@@ -3452,7 +3452,7 @@ export default function SettingsPage({
     setShowResetConfirm(false);
     if (isElectron) await window.electron.resetApp();
     storage.clearAll();
-    // Clear non-prefixed localStorage caches
+    // Clear any remaining non-prefixed localStorage caches
     for (const key of Object.keys(localStorage)) {
       if (key.startsWith("dlDur_")) localStorage.removeItem(key);
     }
@@ -3482,7 +3482,7 @@ export default function SettingsPage({
       {showDeleteDlConfirm && (
         <ConfirmDialog
           title="DELETE ALL DOWNLOADS?"
-          description="This will permanently delete all video files downloaded through Streambert and remove them from the download list."
+          description="This will permanently delete all video files downloaded through Sagar and remove them from the download list."
           confirmLabel="Yes, Delete All"
           onConfirm={async () => {
             setShowDeleteDlConfirm(false);
@@ -3524,7 +3524,7 @@ export default function SettingsPage({
           SETTINGS
         </div>
         <div style={{ color: "var(--text3)", fontSize: 14, marginBottom: 48 }}>
-          App configuration for Streambert
+          App configuration for Sagar
         </div>
 
         {/* ══════════════════════════════════════════════════════════════════ */}
@@ -4108,7 +4108,7 @@ export default function SettingsPage({
               }}
             >
               Downloaded videos will be saved here. Make sure the folder exists
-              and Streambert has write access to it.
+              and Sagar has write access to it.
             </div>
             <div
               style={{
@@ -4217,7 +4217,7 @@ export default function SettingsPage({
             <div style={{ padding: "22px 24px" }}>
               <CleanRow
                 title="Install Location"
-                description="Opens the folder where Streambert is installed."
+                description="Opens the folder where Sagar is installed."
                 buttonLabel="Open Folder"
                 onAction={async () => {
                   const p = await window.electron?.getInstallPath?.();
@@ -4263,7 +4263,7 @@ export default function SettingsPage({
             <div style={{ padding: "22px 24px" }}>
               <CleanRow
                 title="Delete All Downloads"
-                description="Permanently deletes all video files that were downloaded through Streambert and removes them from the download list. Only files downloaded through the app will be deleted, nothing else in your folder is touched."
+                description="Permanently deletes all video files that were downloaded through Sagar and removes them from the download list. Only files downloaded through the app will be deleted, nothing else in your folder is touched."
                 buttonLabel="Delete All"
                 onAction={() =>
                   new Promise((resolve) => {
@@ -4329,7 +4329,7 @@ export default function SettingsPage({
                       lineHeight: 1.6,
                     }}
                   >
-                    Completely resets Streambert to factory defaults, clears all
+                    Completely resets Sagar to factory defaults, clears all
                     settings, API Token, saved library, watch history/progress,
                     and all cached data. Your downloaded video files will not be
                     touched.

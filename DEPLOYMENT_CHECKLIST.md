@@ -27,7 +27,7 @@
 
 ### 1. Test the App Build
 ```bash
-cd /path/to/neo
+cd /path/to/sagar
 npm run dev  # or npm start for production build
 ```
 

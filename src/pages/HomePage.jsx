@@ -2,8 +2,9 @@ import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { imgUrl, tmdbFetch } from "../utils/api";
 import HeroBanner from "../components/HeroBanner";
 import TrailerModal from "../components/TrailerModal";
-import NeoRow from "../components/NeoRow";
+import SagarRow from "../components/SagarRow";
 import { PlayIcon, BookmarkIcon, BookmarkFillIcon, CloseIcon } from "../components/Icons";
+import { loadHomeLayout, loadHomeViewMode } from "../utils/homeLayout";
 
 const GENRE_MAP = {
   28: "Action", 12: "Adventure", 16: "Animation", 35: "Comedy", 80: "Crime",
@@ -182,6 +183,20 @@ export default function HomePage({
   const [genreMovies, setGenreMovies] = useState([]);
   const [genreLoading, setGenreLoading] = useState(false);
 
+  // ── Home layout settings (order + visibility) ───────────────────────────
+  const [layoutOrder, setLayoutOrder] = useState(() => loadHomeLayout().order);
+  const [layoutVisible, setLayoutVisible] = useState(() => loadHomeLayout().visible);
+
+  useEffect(() => {
+    const handler = () => {
+      const { order, visible } = loadHomeLayout();
+      setLayoutOrder(order);
+      setLayoutVisible(visible);
+    };
+    window.addEventListener("sagar:layout-changed", handler);
+    return () => window.removeEventListener("sagar:layout-changed", handler);
+  }, []);
+
   // ── Parallel fetch — no sequential waterfall ────────────────────────────
   useEffect(() => {
     if (!apiKey || offline) return;
@@ -346,125 +361,145 @@ export default function HomePage({
         </div>
       )}
 
-      {/* TOP 10 */}
-      {!offline && <Top10Row items={trendingMovies} onSelect={onSelect} />}
+      {/* ── Dynamic rows based on saved layout order & visibility ── */}
+      {layoutOrder.map((rowId) => {
+        if (layoutVisible[rowId] === false) return null;
 
-      {/* CONTINUE WATCHING */}
-      {inProgress?.length > 0 && (
-        <div className="neo-section">
-          <div className="neo-section__header">
-            <h2 className="neo-section__title">Continue Watching</h2>
-            <span className="neo-section__badge">{inProgress.length} IN PROGRESS</span>
-          </div>
-          <div className="neo-row">
-            <button className="neo-row__btn neo-row__btn--left" onClick={() => scrollCW("left")} aria-label="Scroll left">‹</button>
-            <div className="neo-row__track" ref={cwRef} style={{ overflowY: "visible" }}>
-              {inProgress.slice(0, 10).map((item) => {
-                const k = item._pk;
-                const pct = progress[k] || 0;
-                const cid = `${item.media_type}_${item.id}`;
-                return (
-                  <div key={k} className="neo-row__item" style={{ overflow: "visible" }}>
-                    <ContinueWatchingCard
-                      item={item}
-                      progress={pct}
-                      onClick={() => onSelect?.(item)}
-                      details={inProgressDetails[cid]}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-            <button className="neo-row__btn neo-row__btn--right" onClick={() => scrollCW("right")} aria-label="Scroll right">›</button>
-          </div>
-        </div>
-      )}
+        switch (rowId) {
+          case "top10":
+            return !offline ? (
+              <Top10Row key="top10" items={trendingMovies} onSelect={onSelect} />
+            ) : null;
 
-      {/* TRENDING ROWS */}
-      {!offline && (
-        <>
-          <NeoRow title="Trending Movies" items={trendingMovies} badge="HOT" {...rowProps} />
-          <NeoRow title="Popular TV Shows" items={popularTV} {...rowProps} />
-          <NeoRow title="Trending Anime" items={trendingAnime} badge="ANIME" {...rowProps} />
-        </>
-      )}
-
-      {/* CATEGORY TABS */}
-      {!offline && (
-        <div className="neo-section">
-          <div className="neo-section__header">
-            <h2 className="neo-section__title">Browse Trending</h2>
-          </div>
-          <CategoryTabs active={activeCategoryTab} onChange={setActiveCategoryTab} />
-          {/* CSS opacity transition — no Framer Motion AnimatePresence */}
-          <NeoRow
-            key={activeCategoryTab}
-            title=""
-            items={categoryTabItems}
-            {...rowProps}
-          />
-        </div>
-      )}
-
-      {/* TOP RATED & POPULAR */}
-      {!offline && (
-        <>
-          <NeoRow title="Top Rated Movies" items={topRatedMovies} badge="★" {...rowProps} />
-          <NeoRow title="New Releases" items={newReleases} badge="NEW" {...rowProps} />
-          {recommendations.length > 0 && (
-            <NeoRow title={recTitle ? `Because You Watched: ${recTitle}` : "Recommended for You"} items={recommendations} badge="PICK" {...rowProps} />
-          )}
-        </>
-      )}
-
-      {/* GENRE GRID */}
-      {!offline && (
-        <>
-          <GenreGrid onGenreSelect={setSelectedGenre} />
-
-          {selectedGenre && (
-            <div className="neo-section">
-              <div className="neo-section__header">
-                <h2 className="neo-section__title">
-                  {selectedGenre.name} Movies
-                </h2>
-                <button
-                  onClick={() => setSelectedGenre(null)}
-                  style={{
-                    marginLeft: "auto",
-                    background: "rgba(255,255,255,0.08)",
-                    border: "none",
-                    color: "#fff",
-                    width: 28,
-                    height: 28,
-                    borderRadius: "50%",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    cursor: "pointer",
-                  }}
-                >
-                  <CloseIcon />
-                </button>
-              </div>
-              {genreLoading ? (
-                <div className="neo-skeleton-row">
-                  {Array.from({ length: 6 }).map((_, i) => (
-                    <div key={i} className="neo-skeleton-card">
-                      <div className="neo-skeleton neo-skeleton-card__poster" />
-                      <div className="neo-skeleton neo-skeleton-card__title" />
-                    </div>
-                  ))}
+          case "continue":
+            return inProgress?.length > 0 ? (
+              <div key="continue" className="neo-section">
+                <div className="neo-section__header">
+                  <h2 className="neo-section__title">Continue Watching</h2>
+                  <span className="neo-section__badge">{inProgress.length} IN PROGRESS</span>
                 </div>
-              ) : (
-                <NeoRow title="" items={genreMovies} {...rowProps} />
-              )}
-            </div>
-          )}
-        </>
-      )}
+                <div className="neo-row">
+                  <button className="neo-row__btn neo-row__btn--left" onClick={() => scrollCW("left")} aria-label="Scroll left">‹</button>
+                  <div className="neo-row__track" ref={cwRef} style={{ overflowY: "visible" }}>
+                    {inProgress.slice(0, 10).map((item) => {
+                      const k = item._pk;
+                      const pct = progress[k] || 0;
+                      const cid = `${item.media_type}_${item.id}`;
+                      return (
+                        <div key={k} className="neo-row__item" style={{ overflow: "visible" }}>
+                          <ContinueWatchingCard
+                            item={item}
+                            progress={pct}
+                            onClick={() => onSelect?.(item)}
+                            details={inProgressDetails[cid]}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <button className="neo-row__btn neo-row__btn--right" onClick={() => scrollCW("right")} aria-label="Scroll right">›</button>
+                </div>
+              </div>
+            ) : null;
 
-      {/* TRAILER MODAL */}
+          case "trendingMovies":
+            return !offline ? (
+              <SagarRow key="trendingMovies" title="Trending Movies" items={trendingMovies} badge="HOT" {...rowProps} />
+            ) : null;
+
+          case "popularTV":
+            return !offline ? (
+              <SagarRow key="popularTV" title="Popular TV Shows" items={popularTV} {...rowProps} />
+            ) : null;
+
+          case "trendingAnime":
+            return !offline ? (
+              <SagarRow key="trendingAnime" title="Trending Anime" items={trendingAnime} badge="ANIME" {...rowProps} />
+            ) : null;
+
+          case "browseTrending":
+            return !offline ? (
+              <div key="browseTrending" className="neo-section">
+                <div className="neo-section__header">
+                  <h2 className="neo-section__title">Browse Trending</h2>
+                </div>
+                <CategoryTabs active={activeCategoryTab} onChange={setActiveCategoryTab} />
+                <SagarRow
+                  key={activeCategoryTab}
+                  title=""
+                  items={categoryTabItems}
+                  {...rowProps}
+                />
+              </div>
+            ) : null;
+
+          case "topRated":
+            return !offline ? (
+              <SagarRow key="topRated" title="Top Rated Movies" items={topRatedMovies} badge="★" {...rowProps} />
+            ) : null;
+
+          case "newReleases":
+            return !offline ? (
+              <SagarRow key="newReleases" title="New Releases" items={newReleases} badge="NEW" {...rowProps} />
+            ) : null;
+
+          case "recommended":
+            return !offline && recommendations.length > 0 ? (
+              <SagarRow key="recommended" title={recTitle ? `Because You Watched: ${recTitle}` : "Recommended for You"} items={recommendations} badge="PICK" {...rowProps} />
+            ) : null;
+
+          case "genreGrid":
+            return !offline ? (
+              <div key="genreGrid">
+                <GenreGrid onGenreSelect={setSelectedGenre} />
+                {selectedGenre && (
+                  <div className="neo-section">
+                    <div className="neo-section__header">
+                      <h2 className="neo-section__title">
+                        {selectedGenre.name} Movies
+                      </h2>
+                      <button
+                        onClick={() => setSelectedGenre(null)}
+                        style={{
+                          marginLeft: "auto",
+                          background: "rgba(255,255,255,0.08)",
+                          border: "none",
+                          color: "#fff",
+                          width: 28,
+                          height: 28,
+                          borderRadius: "50%",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          cursor: "pointer",
+                        }}
+                      >
+                        <CloseIcon />
+                      </button>
+                    </div>
+                    {genreLoading ? (
+                      <div className="neo-skeleton-row">
+                        {Array.from({ length: 6 }).map((_, i) => (
+                          <div key={i} className="neo-skeleton-card">
+                            <div className="neo-skeleton neo-skeleton-card__poster" />
+                            <div className="neo-skeleton neo-skeleton-card__title" />
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <SagarRow title="" items={genreMovies} {...rowProps} />
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : null;
+
+          default:
+            return null;
+        }
+      })}
+
+      {/* Trailer Modal */}
       {showTrailer && heroTrailerKey && (
         <TrailerModal
           trailerKey={heroTrailerKey}

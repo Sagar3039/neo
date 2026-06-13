@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { imgUrl, tmdbFetch } from "../utils/api";
 import { BookmarkIcon, BookmarkFillIcon, PlayIcon, StarIcon } from "../components/Icons";
-import NeoRow from "../components/NeoRow";
+import SagarRow from "../components/SagarRow";
 
 const CATEGORY_CONFIG = [
   { key: "trending", title: "Trending TV Shows",   path: "/trending/tv/week" },
@@ -197,16 +197,16 @@ export default function TVShowsPage({
 
       <Top10Row items={sections.trending || []} onSelect={onSelect} />
 
-      <NeoRow title="Trending This Week" items={sections.trending} badge="HOT" loading={loading} {...rowProps} />
-      <NeoRow title="Popular Series" items={sections.popular} loading={loading && !sections.popular} {...rowProps} />
-      <NeoRow title="Top Rated All Time" items={sections.topRated} badge="★ RATED" loading={loading && !sections.topRated} {...rowProps} />
-      <NeoRow title="Drama" items={sections.drama} loading={loading && !sections.drama} {...rowProps} />
-      <NeoRow title="Crime" items={sections.crime} loading={loading && !sections.crime} {...rowProps} />
-      <NeoRow title="Thriller" items={sections.thriller} loading={loading && !sections.thriller} {...rowProps} />
-      <NeoRow title="Comedy" items={sections.comedy} loading={loading && !sections.comedy} {...rowProps} />
-      <NeoRow title="Sci-Fi & Fantasy" items={sections.scifi} loading={loading && !sections.scifi} {...rowProps} />
+      <SagarRow title="Trending This Week" items={sections.trending} badge="HOT" loading={loading} {...rowProps} />
+      <SagarRow title="Popular Series" items={sections.popular} loading={loading && !sections.popular} {...rowProps} />
+      <SagarRow title="Top Rated All Time" items={sections.topRated} badge="★ RATED" loading={loading && !sections.topRated} {...rowProps} />
+      <SagarRow title="Drama" items={sections.drama} loading={loading && !sections.drama} {...rowProps} />
+      <SagarRow title="Crime" items={sections.crime} loading={loading && !sections.crime} {...rowProps} />
+      <SagarRow title="Thriller" items={sections.thriller} loading={loading && !sections.thriller} {...rowProps} />
+      <SagarRow title="Comedy" items={sections.comedy} loading={loading && !sections.comedy} {...rowProps} />
+      <SagarRow title="Sci-Fi & Fantasy" items={sections.scifi} loading={loading && !sections.scifi} {...rowProps} />
       {topPicks.length > 0 && (
-        <NeoRow title="Recommended for You" items={topPicks} badge="PICK" {...rowProps} />
+        <SagarRow title="Recommended for You" items={topPicks} badge="PICK" {...rowProps} />
       )}
     </div>
   );

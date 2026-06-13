@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { imgUrl, tmdbFetch } from "../utils/api";
 import { BookmarkIcon, BookmarkFillIcon, PlayIcon, StarIcon } from "../components/Icons";
-import NeoRow from "../components/NeoRow";
+import SagarRow from "../components/SagarRow";
 
 const CATEGORY_CONFIG = [
   { key: "trending",    title: "Trending Anime",     path: "/discover/tv?with_genres=16&with_original_language=ja&sort_by=popularity.desc&page=1" },
@@ -170,16 +170,16 @@ export default function AnimePage({
       <Top10Row items={sections.topRated || []} onSelect={onSelect} />
 
       {continueWatching.length > 0 && (
-        <NeoRow title="Continue Watching" items={continueWatching} badge="IN PROGRESS" {...rowProps} />
+        <SagarRow title="Continue Watching" items={continueWatching} badge="IN PROGRESS" {...rowProps} />
       )}
 
-      <NeoRow title="Trending Now" items={sections.trending} badge="🔥" loading={loading} {...rowProps} />
-      <NeoRow title="New Anime" items={sections.newReleases} badge="NEW" loading={loading && !sections.newReleases} {...rowProps} />
-      <NeoRow title="Top Rated All Time" items={sections.topRated} badge="★ RATED" loading={loading && !sections.topRated} {...rowProps} />
-      <NeoRow title="Action" items={sections.action} loading={loading && !sections.action} {...rowProps} />
-      <NeoRow title="Fantasy" items={sections.fantasy} loading={loading && !sections.fantasy} {...rowProps} />
-      <NeoRow title="Romance" items={sections.romance} loading={loading && !sections.romance} {...rowProps} />
-      <NeoRow title="Shounen Favorites" items={sections.shounen} loading={loading && !sections.shounen} {...rowProps} />
+      <SagarRow title="Trending Now" items={sections.trending} badge="🔥" loading={loading} {...rowProps} />
+      <SagarRow title="New Anime" items={sections.newReleases} badge="NEW" loading={loading && !sections.newReleases} {...rowProps} />
+      <SagarRow title="Top Rated All Time" items={sections.topRated} badge="★ RATED" loading={loading && !sections.topRated} {...rowProps} />
+      <SagarRow title="Action" items={sections.action} loading={loading && !sections.action} {...rowProps} />
+      <SagarRow title="Fantasy" items={sections.fantasy} loading={loading && !sections.fantasy} {...rowProps} />
+      <SagarRow title="Romance" items={sections.romance} loading={loading && !sections.romance} {...rowProps} />
+      <SagarRow title="Shounen Favorites" items={sections.shounen} loading={loading && !sections.shounen} {...rowProps} />
     </div>
   );
 }

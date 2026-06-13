@@ -1,7 +1,7 @@
 {
-  "name": "streambert",
+  "name": "sagar",
   "version": "2.5.0",
-  "description": "Streambert Desktop App",
+  "description": "Sagar Streaming App",
   "author": {
     "name": "truelockmc",
     "email": "anonyson@proton.me"
@@ -42,8 +42,8 @@
     "vite": "^7.3.1"
   },
   "build": {
-    "appId": "com.truelockmc.streambert",
-    "productName": "Streambert",
+    "appId": "com.sagar.streaming",
+    "productName": "Sagar",
     "asar": true,
     "compression": "normal",
     "directories": {
@@ -98,7 +98,7 @@
       "createStartMenuShortcut": true,
       "selectPerMachineByDefault": false,
       "license": "LICENSE",
-      "uninstallDisplayName": "Uninstall Streambert",
+      "uninstallDisplayName": "Uninstall Sagar",
       "installerSidebar": "public/installer-sidebar.bmp"
     },
     "win": {
@@ -164,11 +164,11 @@
       "icon": "public/sized",
       "desktop": {
         "entry": {
-          "Name": "Streambert",
-          "Comment": "Streambert Desktop App",
+          "Name": "Sagar",
+          "Comment": "Sagar Streaming App",
           "Categories": "AudioVideo;Video;Player;Multimedia;Internet;",
-          "Icon": "streambert",
-          "StartupWMClass": "Streambert"
+          "Icon": "sagar",
+          "StartupWMClass": "Sagar"
         }
       }
     },

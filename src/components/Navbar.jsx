@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import {
-  NeoLogo,
+  SagarLogo,
   SearchIcon,
   SettingsIcon,
 } from "./Icons";
@@ -53,10 +53,10 @@ export default function Navbar({
         <div
           className="neo-navbar__logo"
           onClick={() => onNavigate("home")}
-          title="Neo"
+          title="Sagar"
         >
-          <NeoLogo size={32} />
-          <span className="neo-navbar__brand">NEO</span>
+          <SagarLogo size={32} />
+          <span className="neo-navbar__brand">Sagar</span>
         </div>
 
         <nav className="neo-navbar__nav">
@@ -184,7 +184,7 @@ export default function Navbar({
               setMobileMenu(false);
             }}
           >
-            Settingsssss
+            Settings
           </button>
 
           

@@ -248,7 +248,7 @@ function register(getMainWindow, { writeSecretMigration }) {
         : format === "pacman" ? ".pacman"
         : format === "dmg" ? ".dmg"
         : ".AppImage";
-      const destPath = path.join(os.tmpdir(), `streambert-update${ext}`);
+      const destPath = path.join(os.tmpdir(), `sagar-update${ext}`);
 
       await new Promise((resolve, reject) => {
         if (signal.aborted) return reject(new Error("Cancelled"));
@@ -275,7 +275,7 @@ function register(getMainWindow, { writeSecretMigration }) {
             reqUrl,
             {
               headers: {
-                "User-Agent": "Streambert-AutoUpdater",
+                "User-Agent": "Sagar-AutoUpdater",
                 Accept: "application/octet-stream",
               },
             },
@@ -356,7 +356,7 @@ function register(getMainWindow, { writeSecretMigration }) {
         fs.chmodSync(destPath, 0o755);
         const currentAppImage = process.env.APPIMAGE;
         if (currentAppImage) {
-          const scriptPath = path.join(os.tmpdir(), "streambert-update.sh");
+          const scriptPath = path.join(os.tmpdir(), "sagar-update.sh");
           const pid = process.pid;
           const target = currentAppImage;
           const scriptContent =

@@ -88,7 +88,7 @@ export default function App() {
 
   // ── Player accent + subtitle lang ─────────────────────────────────────────
   // Computed once here and passed as a prop to MoviePage / TVPage so neither
-  // page needs to touch storage.  Refreshed via "streambert:player-settings-changed".
+  // page needs to touch storage.  Refreshed via "sagar:player-settings-changed".
   const readPlayerSettings = () => {
     const accentId = storage.get(STORAGE_KEYS.ACCENT_COLOR) || "red";
     const inPlayer = storage.get(STORAGE_KEYS.ACCENT_IN_PLAYER) !== false; // default true
@@ -122,11 +122,11 @@ export default function App() {
   useEffect(() => {
     if (!window.electron?.getAppVersion) return;
     window.electron.getAppVersion().then((version) => {
-      const lastVersion = localStorage.getItem("streambert_lastVersion");
+      const lastVersion = localStorage.getItem("sagar_lastVersion");
       if (lastVersion && lastVersion !== version) {
         clearAppCaches();
       }
-      localStorage.setItem("streambert_lastVersion", version);
+      localStorage.setItem("sagar_lastVersion", version);
     });
   }, []);
 
@@ -577,25 +577,25 @@ export default function App() {
   // ── Sync librarySort when changed from Settings ───────────────────────────
   useEffect(() => {
     const handler = (e) => setLibrarySort(e.detail);
-    window.addEventListener("streambert:library-sort-changed", handler);
+    window.addEventListener("sagar:library-sort-changed", handler);
     return () =>
-      window.removeEventListener("streambert:library-sort-changed", handler);
+      window.removeEventListener("sagar:library-sort-changed", handler);
   }, []);
 
   // ── Re-fetch trending immediately when metadata language changes ──────────
   useEffect(() => {
     const handler = () => fetchTrending();
-    window.addEventListener("streambert:tmdb-lang-changed", handler);
+    window.addEventListener("sagar:tmdb-lang-changed", handler);
     return () =>
-      window.removeEventListener("streambert:tmdb-lang-changed", handler);
+      window.removeEventListener("sagar:tmdb-lang-changed", handler);
   }, [fetchTrending]);
 
   // ── Refresh player settings (accent + subtitle lang) after save ───────────
   useEffect(() => {
     const handler = () => setPlayerSettings(readPlayerSettings());
-    window.addEventListener("streambert:player-settings-changed", handler);
+    window.addEventListener("sagar:player-settings-changed", handler);
     return () =>
-      window.removeEventListener("streambert:player-settings-changed", handler);
+      window.removeEventListener("sagar:player-settings-changed", handler);
   }, []);
   useEffect(() => {
     // Accent colour
@@ -1186,7 +1186,7 @@ export default function App() {
               color: "#fff",
             }}
           >
-            <span>🎉 Neo v{updateBanner.latest} is available!</span>
+            <span>🎉 Sagar v{updateBanner.latest} is available!</span>
             <button
               onClick={() => setShowUpdateModal(true)}
               style={{

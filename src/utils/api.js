@@ -6,7 +6,7 @@ const IMG_BASE = "https://image.tmdb.org/t/p";
 // Falls back to "en-US".
 function getTmdbLanguage() {
   try {
-    const raw = localStorage.getItem("streambert_tmdbLang");
+    const raw = localStorage.getItem("sagar_tmdbLang");
     return raw ? JSON.parse(raw) : "en-US";
   } catch {
     return "en-US";
@@ -42,7 +42,7 @@ const TMDB_CACHE_TTL = 5 * 60 * 1000;
 export function clearTmdbCache() {
   _tmdbCache.clear();
   try {
-    localStorage.removeItem("streambert_trendingCache");
+    localStorage.removeItem("sagar_trendingCache");
   } catch {}
 }
 
@@ -300,7 +300,7 @@ query ($search: String, $type: MediaType) {
 }`;
 
 // ── AniList cache (localStorage + in-memory) ──────────────────────────────────
-const ANILIST_CACHE_KEY = "streambert_anilistCache";
+const ANILIST_CACHE_KEY = "sagar_anilistCache";
 const ANILIST_CACHE_TTL = 1000 * 60 * 60 * 24 * 7; // 7 days
 
 // loaded once on first use, flushed to localStorage on write.
@@ -455,7 +455,7 @@ export const NON_ANIME_DEFAULT_SOURCE = "vidking";
 
 // ── Episode Group fetch (localStorage + in-memory cache, 7-day TTL) ─────────
 // Episode groups almost never change -> cache aggressively across sessions.
-const EG_CACHE_KEY = "streambert_episodeGroupCache";
+const EG_CACHE_KEY = "sagar_episodeGroupCache";
 const EG_CACHE_TTL = 1000 * 60 * 60 * 24 * 7; // 7 days
 
 let _egCache = null;

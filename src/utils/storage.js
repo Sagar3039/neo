@@ -1,6 +1,6 @@
 // localStorage-based persistence (works in both Vite dev and prod)
 
-const PREFIX = "streambert_";
+const PREFIX = "sagar_";
 
 export const storage = {
   get(key) {
@@ -21,7 +21,7 @@ export const storage = {
       localStorage.removeItem(PREFIX + key);
     } catch {}
   },
-  // Remove all streambert_ keys (used by reset)
+  // Remove all sagar_ keys (used by reset)
   clearAll() {
     try {
       Object.keys(localStorage)
@@ -179,10 +179,11 @@ export async function clearAppCaches() {
       await window.electron.clearAppCache();
     } catch {}
   }
-  localStorage.removeItem("streambert_anilistCache");
-  localStorage.removeItem("streambert_episodeGroupCache");
-  localStorage.removeItem("streambert_aniskipCache");
+  localStorage.removeItem("sagar_anilistCache");
+  localStorage.removeItem("sagar_episodeGroupCache");
+  localStorage.removeItem("sagar_aniskipCache");
+  // Clear any remaining dlDur_ duration cache keys (may use different prefixes)
   for (const key of Object.keys(localStorage)) {
-    if (key.startsWith("dlDur_")) localStorage.removeItem(key);
+    if (key.includes("dlDur_")) localStorage.removeItem(key);
   }
 }

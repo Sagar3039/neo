@@ -66,7 +66,7 @@ export default function WindowTitlebar() {
           textOverflow: "ellipsis",
         }}
       >
-        NEO
+        Sagar
       </div>
 
       {/* Window control buttons, NOT draggable */}

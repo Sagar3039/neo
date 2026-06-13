@@ -69,7 +69,7 @@ export default function LoginPage({ onLoginSuccess, onSwitchToSignup }) {
             letterSpacing: 2,
           }}
         >
-          NEO
+          Sagar
         </div>
         <div
           style={{

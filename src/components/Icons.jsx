@@ -1,4 +1,4 @@
-export const NeoLogo = ({ style, size = 32 }) => (
+export const SagarLogo = ({ style, size = 32 }) => (
   <svg
     width={size}
     height={size}
@@ -8,7 +8,7 @@ export const NeoLogo = ({ style, size = 32 }) => (
     style={style}
   >
     <rect width="44" height="44" rx="4" fill="#E50914"/>
-    <text x="22" y="32" textAnchor="middle" fontFamily="Georgia,serif" fontWeight="900" fontSize="30" fill="white" letterSpacing="-1">N</text>
+    <text x="22" y="32" textAnchor="middle" fontFamily="Georgia,serif" fontWeight="900" fontSize="30" fill="white" letterSpacing="-1">S</text>
   </svg>
 );
 

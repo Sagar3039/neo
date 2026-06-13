@@ -24,7 +24,7 @@ Copy the key starting with ```wyzie-``` that should show up now.
 
 ![Copy your key](screenshots/copy_wyzie.png)
 
-After that, just paste it into streambert.
+After that, just paste it into Sagar.
 
 ![Paste your key](screenshots/paste_wyzie.png)
 

@@ -42,9 +42,9 @@ Go back to your [API Settings](https://www.themoviedb.org/settings/api) and copy
 
 ---
 
-## 5. Paste It Into Streambert
+## 5. Paste It Into Sagar
 
-Paste the token into the Streambert setup screen and press **Let's go**. And That's it!
+Paste the token into the Sagar setup screen and press **Let's go**. And That's it!
 
 ---
 

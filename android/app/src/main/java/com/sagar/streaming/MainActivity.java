@@ -1,4 +1,4 @@
-package com.sagar.neo;
+package com.sagar.streaming;
 
 import com.getcapacitor.BridgeActivity;
 

@@ -1,6 +1,6 @@
 {
-  "appId": "com.sagar.neo",
-  "appName": "Neo",
+  "appId": "com.sagar.streaming",
+  "appName": "Sagar",
   "webDir": "dist",
   "android": {
     "allowMixedContent": true,

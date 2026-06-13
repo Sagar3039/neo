@@ -2217,7 +2217,7 @@ export default function TVPage({
 
                 {/* Skip controls are injected directly into the webview DOM*/}
 
-                {/* AniSkip manual prompt, rendered in streambert UI, outside webview */}
+                {/* AniSkip manual prompt, rendered in Sagar UI, outside webview */}
                 {skipPrompt && (
                   <button
                     onClick={handleManualSkip}

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { NeoLogo, PlayIcon } from "./Icons";
+import { SagarLogo, PlayIcon } from "./Icons";
 import { validateTmdbKey, getValidationErrorMessage, saveTmdbKey } from "../services/tmdbKeyService";
 
 function ExternalLink({ href, className, children }) {
@@ -52,9 +52,9 @@ export default function SetupScreen({ onSave, onSkip }) {
     <div className="apikey-modal">
       <div className="apikey-box">
         <div className="apikey-logo">
-          <NeoLogo size={52} />
+          <SagarLogo size={52} />
         </div>
-        <div className="apikey-title">NEO</div>
+        <div className="apikey-title">Sagar</div>
         <p className="apikey-sub">
           Enter your <strong>free</strong> TMDB{" "}
           <strong>Read Access Token</strong> to get started.

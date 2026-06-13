@@ -4,11 +4,16 @@
 import { storage } from "./storage";
 
 export const HOME_ROWS = [
+  { id: "top10", label: "Top 10 Today" },
   { id: "continue", label: "Continue Watching" },
-  { id: "recommended", label: "Recommended for You" },
   { id: "trendingMovies", label: "Trending Movies" },
-  { id: "trendingTV", label: "Trending Series" },
-  { id: "topRated", label: "Top Rated" },
+  { id: "popularTV", label: "Popular TV Shows" },
+  { id: "trendingAnime", label: "Trending Anime" },
+  { id: "browseTrending", label: "Browse Trending (Tabs)" },
+  { id: "topRated", label: "Top Rated Movies" },
+  { id: "newReleases", label: "New Releases" },
+  { id: "recommended", label: "Recommended for You" },
+  { id: "genreGrid", label: "Browse by Genre" },
 ];
 
 const DEFAULT_ROW_ORDER = HOME_ROWS.map((r) => r.id);
