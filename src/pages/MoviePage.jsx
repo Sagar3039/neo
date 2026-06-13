@@ -120,9 +120,12 @@ export default function MoviePage({
   const resolvedPlayerUrlRef = useRef(null);
   const [collection, setCollection] = useState(null); // { name, parts }
   // Webview loading overlay
+  // On Android (Capacitor) window.electron is undefined — use <iframe> instead of <webview>
+  const isAndroid = typeof window !== "undefined" && !window.electron;
   const [webviewLoading, setWebviewLoading] = useState(false);
   const [playerFullscreen, setPlayerFullscreen] = useState(false);
   // pipOpen=true: main webview shows about:blank, pop-out window has the real player
+  // pipOpen is always false on Android (no Electron pop-out)
   const [pipOpen, setPipOpen] = useState(false);
   const pipUrlRef = useRef(null); // URL to restore when pop-out closes
   const pipWebContentsIdRef = useRef(null); // cached WebContents ID of the pop-out window
@@ -458,16 +461,17 @@ export default function MoviePage({
   // ── Webview memory cleanup ────────────────────────────────────────────────
   // useLayoutEffect fires synchronously BEFORE React mutates the DOM, so the
   // webview is still attached when we navigate it to about:blank.
-  // This lets Chromium unload.
+  // On Android (iframe) React handles src via state — no manual nav needed.
   useLayoutEffect(() => {
     if (playing) return;
+    if (isAndroid) return; // iframe src is React-controlled, skip manual nav
     const wv = webviewRef.current;
     if (wv) {
       try {
         wv.src = "about:blank";
       } catch {}
     }
-  }, [playing]);
+  }, [playing, isAndroid]);
 
   // On unmount: signal main process to destroy the player WebContents and flush session cache.
   useEffect(() => {
@@ -476,19 +480,26 @@ export default function MoviePage({
     };
   }, []);
 
-  // Attach webview load events so we know when the new source has painted
+  // Attach webview load events so we know when the new source has painted.
+  // On Android we use <iframe> which fires native load/error events, not Electron's did-finish-load.
   useEffect(() => {
     if (!playing) return;
     const wv = webviewRef.current;
     if (!wv) return;
     const done = () => setWebviewLoading(false);
+    if (isAndroid) {
+      // <iframe> on Android — load events handled via onLoad/onError props on the element.
+      // Fallback: clear the spinner after a short timeout in case iframe loads without firing.
+      const t = setTimeout(done, 3500);
+      return () => clearTimeout(t);
+    }
     wv.addEventListener("did-finish-load", done);
     wv.addEventListener("did-fail-load", done);
     return () => {
       wv.removeEventListener("did-finish-load", done);
       wv.removeEventListener("did-fail-load", done);
     };
-  }, [playing, playerSource, item.id]);
+  }, [playing, playerSource, item.id, isAndroid]);
 
   // ── Auto-track progress + auto-watched every 5s ──────────────────────────
   useEffect(() => {
@@ -955,12 +966,11 @@ export default function MoviePage({
                 </button>
               </div>
             )}
-            <webview
-              ref={webviewRef}
-              src={
-                pipOpen
-                  ? "about:blank"
-                  : sourceIsAsync(playerSource)
+            {isAndroid ? (
+              <iframe
+                ref={webviewRef}
+                src={
+                  sourceIsAsync(playerSource)
                     ? resolvedPlayerUrl || "about:blank"
                     : getSourceUrl(
                         playerSource,
@@ -972,23 +982,62 @@ export default function MoviePage({
                         playerAccentColor,
                         playerSubLang,
                       )
-              }
-              partition="persist:player"
-              allowpopups="false"
-              sandbox="allow-scripts allow-same-origin allow-forms"
-              style={{
-                position: "absolute",
-                inset: 0,
-                width: "100%",
-                height: "100%",
-                border: "none",
-                visibility:
-                  webviewLoading ||
-                  (sourceIsAsync(playerSource) && !resolvedPlayerUrl)
-                    ? "hidden"
-                    : "visible",
-              }}
-            />
+                }
+                allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+                allowFullScreen
+                sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock"
+                onLoad={() => setWebviewLoading(false)}
+                onError={() => setWebviewLoading(false)}
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  width: "100%",
+                  height: "100%",
+                  border: "none",
+                  background: "#000",
+                  visibility:
+                    webviewLoading ||
+                    (sourceIsAsync(playerSource) && !resolvedPlayerUrl)
+                      ? "hidden"
+                      : "visible",
+                }}
+              />
+            ) : (
+              <webview
+                ref={webviewRef}
+                src={
+                  pipOpen
+                    ? "about:blank"
+                    : sourceIsAsync(playerSource)
+                      ? resolvedPlayerUrl || "about:blank"
+                      : getSourceUrl(
+                          playerSource,
+                          "movie",
+                          item.id,
+                          null,
+                          null,
+                          {},
+                          playerAccentColor,
+                          playerSubLang,
+                        )
+                }
+                partition="persist:player"
+                allowpopups="false"
+                sandbox="allow-scripts allow-same-origin allow-forms"
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  width: "100%",
+                  height: "100%",
+                  border: "none",
+                  visibility:
+                    webviewLoading ||
+                    (sourceIsAsync(playerSource) && !resolvedPlayerUrl)
+                      ? "hidden"
+                      : "visible",
+                }}
+              />
+            )}
             {/* Left-side overlay button group, flex row, no fixed px offsets */}
             <div className="player-overlay-group">
               <button

@@ -1,5 +1,29 @@
 {
   "appId": "com.sagar.neo",
   "appName": "Neo",
-  "webDir": "dist"
+  "webDir": "dist",
+  "android": {
+    "allowMixedContent": true,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": false
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": false
+    }
+  },
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true,
+    "allowNavigation": [
+      "*.videasy.net",
+      "*.vsembed.su",
+      "*.vidking.net",
+      "*.allmanga.to",
+      "*.themoviedb.org",
+      "*.image.tmdb.org",
+      "*.vidsrc.*",
+      "*.2embed.*"
+    ]
+  }
 }

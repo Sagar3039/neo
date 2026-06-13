@@ -423,6 +423,8 @@ export default function TVPage({
   const [episodeGroupData, setEpisodeGroupData] = useState(null); // Raw TMDB episode group response
   const [episodeGroupMap, setEpisodeGroupMap] = useState(null); // Map built from TMDB episode group
   // Webview loading overlay
+  // On Android (Capacitor) window.electron is undefined — use <iframe> instead of <webview>
+  const isAndroid = typeof window !== "undefined" && !window.electron;
   const [webviewLoading, setWebviewLoading] = useState(false);
   const [playerFullscreen, setPlayerFullscreen] = useState(false);
   const [pipOpen, setPipOpen] = useState(false);
@@ -1085,16 +1087,17 @@ export default function TVPage({
   // ── Webview memory cleanup ────────────────────────────────────────────────
   // useLayoutEffect fires synchronously BEFORE React mutates the DOM, so the
   // webview is still attached when we navigate it to about:blank.
-  // This lets Chromium unload the streaming page.
+  // On Android (iframe) React controls src via state — no manual nav needed.
   useLayoutEffect(() => {
     if (playing) return; // only act when playing stops
+    if (isAndroid) return; // iframe src is React-controlled, skip manual nav
     const wv = webviewRef.current;
     if (wv) {
       try {
         wv.src = "about:blank";
       } catch {}
     }
-  }, [playing]);
+  }, [playing, isAndroid]);
 
   // On unmount: signal main process to destroy the player WebContents and flush session cahce
   useEffect(() => {
@@ -1104,12 +1107,20 @@ export default function TVPage({
   }, []);
 
   // Attach webview load events so we know when the new source has painted.
-  // Also poll for video duration so AniSkip markers appear without waiting for the 5s progress tick.
+  // On Android we use <iframe> (onLoad/onError props) + a fallback timeout.
+  // On Electron we use the Chromium did-finish-load / did-fail-load events.
   useEffect(() => {
     if (!playing) return;
     const wv = webviewRef.current;
     if (!wv) return;
     const done = () => setWebviewLoading(false);
+
+    if (isAndroid) {
+      // iframe load handled via onLoad/onError props. Safety timeout clears any stuck spinner.
+      const t = setTimeout(done, 3500);
+      return () => clearTimeout(t);
+    }
+
     wv.addEventListener("did-finish-load", done);
     wv.addEventListener("did-fail-load", done);
 
@@ -1138,7 +1149,7 @@ export default function TVPage({
       wv.removeEventListener("did-fail-load", done);
       clearInterval(pollDuration);
     };
-  }, [playing, playerSource, item.id, selectedEp?.episode_number]);
+  }, [playing, playerSource, item.id, selectedEp?.episode_number, isAndroid]);
 
   // ── AniSkip: fetch timings when episode changes ───────────────────────────
   useEffect(() => {
@@ -1944,12 +1955,11 @@ export default function TVPage({
                     </div>
                   </div>
                 )}
-                <webview
-                  ref={webviewRef}
-                  src={
-                    pipOpen
-                      ? "about:blank"
-                      : isAsync
+                {isAndroid ? (
+                  <iframe
+                    ref={webviewRef}
+                    src={
+                      isAsync
                         ? resolvedPlayerUrl || "about:blank"
                         : getSourceUrl(
                             playerSource,
@@ -1961,26 +1971,66 @@ export default function TVPage({
                             playerAccentColor,
                             playerSubLang,
                           )
-                  }
-                  partition="persist:player"
-                  allowpopups="false"
-                  sandbox="allow-scripts allow-same-origin allow-forms"
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    width: "100%",
-                    height: "100%",
-                    border: "none",
-                    outline: "none",
-                    boxShadow: "none",
-                    background: "black",
-                    visibility:
-                      webviewLoading || (isAsync && !resolvedPlayerUrl)
-                        ? "hidden"
-                        : "visible",
-                  }}
-                  tabIndex={-1}
-                />
+                    }
+                    allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+                    allowFullScreen
+                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock"
+                    onLoad={() => setWebviewLoading(false)}
+                    onError={() => setWebviewLoading(false)}
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      width: "100%",
+                      height: "100%",
+                      border: "none",
+                      outline: "none",
+                      boxShadow: "none",
+                      background: "#000",
+                      visibility:
+                        webviewLoading || (isAsync && !resolvedPlayerUrl)
+                          ? "hidden"
+                          : "visible",
+                    }}
+                  />
+                ) : (
+                  <webview
+                    ref={webviewRef}
+                    src={
+                      pipOpen
+                        ? "about:blank"
+                        : isAsync
+                          ? resolvedPlayerUrl || "about:blank"
+                          : getSourceUrl(
+                              playerSource,
+                              "tv",
+                              item.id,
+                              playerEp.season,
+                              playerEp.episode,
+                              {},
+                              playerAccentColor,
+                              playerSubLang,
+                            )
+                    }
+                    partition="persist:player"
+                    allowpopups="false"
+                    sandbox="allow-scripts allow-same-origin allow-forms"
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      width: "100%",
+                      height: "100%",
+                      border: "none",
+                      outline: "none",
+                      boxShadow: "none",
+                      background: "black",
+                      visibility:
+                        webviewLoading || (isAsync && !resolvedPlayerUrl)
+                          ? "hidden"
+                          : "visible",
+                    }}
+                    tabIndex={-1}
+                  />
+                )}
                 {/* Left-side overlay button group, flex row, no fixed px offsets */}
                 <div className="player-overlay-group">
                   <button
