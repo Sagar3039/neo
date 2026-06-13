@@ -34,6 +34,7 @@ import SignupPage from "./components/SignupPage";
 const HomePage = lazy(() => import("./pages/HomePage"));
 const MoviePage = lazy(() => import("./pages/MoviePage"));
 const TVPage = lazy(() => import("./pages/TVPage"));
+const PlayerPage = lazy(() => import("./pages/PlayerPage"));
 const MoviesPage = lazy(() => import("./pages/MoviesPage"));
 const TVShowsPage = lazy(() => import("./pages/TVShowsPage"));
 const AnimePage = lazy(() => import("./pages/AnimePage"));
@@ -1086,6 +1087,9 @@ export default function App() {
                 downloads={downloads}
                 onGoToDownloads={handleGoToDownloads}
                 onSelect={handleSelectResult}
+                onPlay={(cfg) => {
+                  navigate("player", cfg);
+                }}
               />
             )}
             {page === "tv" && selected && (
@@ -1108,6 +1112,19 @@ export default function App() {
                 onMarkUnwatched={markUnwatched}
                 downloads={downloads}
                 onGoToDownloads={handleGoToDownloads}
+                onPlay={(cfg) => {
+                  navigate("player", cfg);
+                }}
+              />
+            )}
+            {page === "player" && selected && (
+              <PlayerPage
+                {...selected}
+                downloads={downloads}
+                onGoToDownloads={handleGoToDownloads}
+                saveProgress={saveProgress}
+                onHistory={addHistory}
+                onBack={navigateBack}
               />
             )}
             {page === "history" && (

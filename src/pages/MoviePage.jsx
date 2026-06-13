@@ -38,6 +38,8 @@ import {
   SourceIcon,
   ShieldBlockIcon,
   PopOutIcon,
+  FullscreenIcon,
+  ExitFullscreenIcon,
 } from "../components/Icons";
 import DownloadModal from "../components/DownloadModal";
 import TrailerModal from "../components/TrailerModal";
@@ -77,6 +79,7 @@ export default function MoviePage({
   downloads,
   onGoToDownloads,
   onSelect,
+  onPlay,
 }) {
   const [details, setDetails] = useState(null);
   const [playing, setPlaying] = useState(false);
@@ -106,6 +109,8 @@ export default function MoviePage({
   const sourceRef = useRef(null);
   const playerWrapRef = useRef(null);
   const webviewRef = useRef(null);
+  const overlayRef = useRef(null); // ref for the fullscreen-player-overlay div
+  const [isNativeFullscreen, setIsNativeFullscreen] = useState(false);
   // Always-current refs for interval callbacks, avoids stale closures without restarting the interval
   const saveProgressRef = useRef(saveProgress);
   saveProgressRef.current = saveProgress;
@@ -863,26 +868,41 @@ export default function MoviePage({
         </div>
       </div>
 
+      {/* ── Fullscreen player overlay ─────────────────────────────────── */}
       {playing && !restricted && !isUnreleased && (
-        <div className="section">
+        <div
+          className="fullscreen-player-overlay"
+          ref={overlayRef}
+          onDoubleClick={() => {
+            if (!document.fullscreenElement) {
+              overlayRef.current?.requestFullscreen?.();
+            } else {
+              document.exitFullscreen?.();
+            }
+          }}
+        >
+          {/* Back button */}
+          <button
+            className="fullscreen-player-back"
+            onClick={() => setPlaying(false)}
+          >
+            <BackIcon />
+            <span className="fullscreen-player-back__label">{title}</span>
+          </button>
+
+          {/* Player */}
           <div
-            className={`player-wrap${playerFullscreen ? " player-wrap--fullscreen" : ""}`}
+            className={`player-wrap player-wrap--fs${playerFullscreen ? " player-wrap--fullscreen" : ""}`}
             ref={playerWrapRef}
           >
-            {/* Universal source-loading overlay, shown instantly on every source/item switch */}
+            {/* Loading overlay */}
             {webviewLoading && !resolveError && (
               <div
                 style={{
-                  position: "absolute",
-                  inset: 0,
-                  zIndex: 10,
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  background: "rgba(0,0,0,0.92)",
-                  gap: 14,
-                  borderRadius: "inherit",
+                  position: "absolute", inset: 0, zIndex: 10,
+                  display: "flex", flexDirection: "column",
+                  alignItems: "center", justifyContent: "center",
+                  background: "rgba(0,0,0,0.92)", gap: 14, borderRadius: "inherit",
                 }}
               >
                 <Loader />
@@ -893,168 +913,92 @@ export default function MoviePage({
                 </span>
               </div>
             )}
-            {/* AllManga: error if lookup failed */}
+            {/* Async resolve error */}
             {sourceIsAsync(playerSource) && resolveError && !resolvingUrl && (
               <div
                 style={{
-                  position: "absolute",
-                  inset: 0,
-                  zIndex: 10,
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  background: "rgba(0,0,0,0.85)",
-                  gap: 10,
-                  borderRadius: "inherit",
+                  position: "absolute", inset: 0, zIndex: 10,
+                  display: "flex", flexDirection: "column",
+                  alignItems: "center", justifyContent: "center",
+                  background: "rgba(0,0,0,0.85)", gap: 10, borderRadius: "inherit",
                 }}
               >
                 <span style={{ fontSize: 28 }}>⚠️</span>
-                <span style={{ fontSize: 14, color: "var(--text2)" }}>
-                  Movie not found on AllManga
-                </span>
-                <span style={{ fontSize: 12, color: "var(--text3)" }}>
-                  {resolveError}
-                </span>
-                <span style={{ fontSize: 12, color: "var(--text3)" }}>
-                  Try a different source, or switch sub/dub.
-                </span>
+                <span style={{ fontSize: 14, color: "var(--text2)" }}>Movie not found on AllManga</span>
+                <span style={{ fontSize: 12, color: "var(--text3)" }}>{resolveError}</span>
+                <span style={{ fontSize: 12, color: "var(--text3)" }}>Try a different source.</span>
               </div>
             )}
-            {/* Pop-out active: main stream is paused, pop-out has the real player */}
+            {/* PiP overlay */}
             {pipOpen && (
               <div
                 style={{
-                  position: "absolute",
-                  inset: 0,
-                  zIndex: 20,
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  background: "rgba(0,0,0,0.92)",
-                  gap: 16,
-                  borderRadius: "inherit",
+                  position: "absolute", inset: 0, zIndex: 20,
+                  display: "flex", flexDirection: "column",
+                  alignItems: "center", justifyContent: "center",
+                  background: "rgba(0,0,0,0.92)", gap: 16, borderRadius: "inherit",
                 }}
               >
                 <PopOutIcon size={36} />
-                <span
-                  style={{
-                    fontSize: 15,
-                    color: "var(--text1)",
-                    fontWeight: 600,
-                  }}
-                >
-                  Playing in pop-out window
-                </span>
-                <span
-                  style={{
-                    fontSize: 12,
-                    color: "var(--text2)",
-                    textAlign: "center",
-                    maxWidth: 260,
-                  }}
-                >
-                  Closing the pop-out will reload the player here.
-                </span>
-                <button
-                  className="player-overlay-btn"
-                  onClick={() => window.electron?.closePipWindow?.()}
-                  style={{ marginTop: 4 }}
-                >
+                <span style={{ fontSize: 15, color: "var(--text1)", fontWeight: 600 }}>Playing in pop-out window</span>
+                <button className="player-overlay-btn" onClick={() => window.electron?.closePipWindow?.()}>
                   Close pop-out &amp; return
                 </button>
               </div>
             )}
+            {/* The iframe / webview */}
             {isAndroid ? (
               <iframe
                 ref={webviewRef}
                 src={
                   sourceIsAsync(playerSource)
                     ? resolvedPlayerUrl || "about:blank"
-                    : getSourceUrl(
-                        playerSource,
-                        "movie",
-                        item.id,
-                        null,
-                        null,
-                        {},
-                        playerAccentColor,
-                        playerSubLang,
-                      )
+                    : getSourceUrl(playerSource, "movie", item.id, null, null, {}, playerAccentColor, playerSubLang)
                 }
                 allow="autoplay; fullscreen; encrypted-media; picture-in-picture; web-share"
                 allowFullScreen
                 onLoad={() => setWebviewLoading(false)}
                 onError={() => setWebviewLoading(false)}
                 style={{
-                  position: "absolute",
-                  inset: 0,
-                  width: "100%",
-                  height: "100%",
-                  border: "none",
-                  background: "#000",
-                  visibility:
-                    webviewLoading ||
-                    (sourceIsAsync(playerSource) && !resolvedPlayerUrl)
-                      ? "hidden"
-                      : "visible",
+                  position: "absolute", inset: 0, width: "100%", height: "100%",
+                  border: "none", background: "#000",
+                  visibility: webviewLoading || (sourceIsAsync(playerSource) && !resolvedPlayerUrl) ? "hidden" : "visible",
                 }}
               />
             ) : (
               <webview
                 ref={webviewRef}
                 src={
-                  pipOpen
-                    ? "about:blank"
+                  pipOpen ? "about:blank"
                     : sourceIsAsync(playerSource)
                       ? resolvedPlayerUrl || "about:blank"
-                      : getSourceUrl(
-                          playerSource,
-                          "movie",
-                          item.id,
-                          null,
-                          null,
-                          {},
-                          playerAccentColor,
-                          playerSubLang,
-                        )
+                      : getSourceUrl(playerSource, "movie", item.id, null, null, {}, playerAccentColor, playerSubLang)
                 }
                 partition="persist:player"
                 allowpopups="false"
                 sandbox="allow-scripts allow-same-origin allow-forms"
                 style={{
-                  position: "absolute",
-                  inset: 0,
-                  width: "100%",
-                  height: "100%",
+                  position: "absolute", inset: 0, width: "100%", height: "100%",
                   border: "none",
-                  visibility:
-                    webviewLoading ||
-                    (sourceIsAsync(playerSource) && !resolvedPlayerUrl)
-                      ? "hidden"
-                      : "visible",
+                  visibility: webviewLoading || (sourceIsAsync(playerSource) && !resolvedPlayerUrl) ? "hidden" : "visible",
                 }}
               />
             )}
-            {/* Left-side overlay button group, flex row, no fixed px offsets */}
+            {/* Overlay controls */}
             <div className="player-overlay-group">
               <button
                 ref={sourceRef}
                 className="player-overlay-btn"
                 onClick={() => {
                   const rect = sourceRef.current?.getBoundingClientRect();
-                  if (rect)
-                    setMenuPos({ top: rect.bottom + 6, left: rect.left });
+                  if (rect) setMenuPos({ top: rect.bottom + 6, left: rect.left });
                   setShowSourceMenu((v) => !v);
                 }}
                 title="Change source"
               >
                 <SourceIcon />
-                {PLAYER_SOURCES.find((s) => s.id === playerSource)?.label ??
-                  "Source"}
+                {PLAYER_SOURCES.find((s) => s.id === playerSource)?.label ?? "Source"}
               </button>
-              {/* Sub/Dub toggle, only for async (AllManga) sources */}
               {sourceIsAsync(playerSource) && (
                 <button
                   className="player-overlay-btn"
@@ -1062,67 +1006,60 @@ export default function MoviePage({
                     const next = dubMode === "sub" ? "dub" : "sub";
                     setDubMode(next);
                     storage.set(STORAGE_KEYS.ALLMANGA_DUB_MODE, next);
-                    setM3u8Url(null);
-                    setInterceptedSubs([]);
-                    resolvedPlayerUrlRef.current = null;
-                    setResolvedPlayerUrl(null);
-                    resolvingUrlRef.current = false;
-                    setResolvingUrl(false);
-                    setResolveError(null);
+                    setM3u8Url(null); setInterceptedSubs([]);
+                    resolvedPlayerUrlRef.current = null; setResolvedPlayerUrl(null);
+                    resolvingUrlRef.current = false; setResolvingUrl(false); setResolveError(null);
                   }}
                   title="Toggle Sub/Dub"
                 >
                   {dubMode === "sub" ? "SUB" : "DUB"}
                 </button>
               )}
-              {/* Blocked ads & trackers button */}
               <button
                 className="player-overlay-btn"
-                onClick={() => {
-                  setShowSourceMenu(false);
-                  setShowBlockedModal(true);
-                }}
+                onClick={() => { setShowSourceMenu(false); setShowBlockedModal(true); }}
                 title="Blocked ads & trackers"
               >
                 <ShieldBlockIcon />
-                {blockedSession > 0 && (
-                  <span className="player-blocked-badge">{blockedSession}</span>
-                )}
+                {blockedSession > 0 && <span className="player-blocked-badge">{blockedSession}</span>}
               </button>
-              {/* Pop-out button*/}
-              <button
-                className="player-overlay-btn"
-                onClick={() => {
-                  if (pipOpen) {
-                    window.electron?.closePipWindow?.();
-                    return;
-                  }
-                  const url = sourceIsAsync(playerSource)
-                    ? resolvedPlayerUrl
-                    : getSourceUrl(
-                        playerSource,
-                        "movie",
-                        item.id,
-                        null,
-                        null,
-                        {},
-                        playerAccentColor,
-                        playerSubLang,
-                      );
-                  if (!url) return;
-                  pipUrlRef.current = url;
-                  window.electron?.openPipWindow?.(url, item.title);
-                }}
-                title={pipOpen ? "Close pop-out" : "Pop out player"}
-                disabled={
-                  !pipOpen &&
-                  (webviewLoading ||
-                    !!(sourceIsAsync(playerSource) && !resolvedPlayerUrl))
-                }
-                style={pipOpen ? { color: "var(--red)" } : undefined}
-              >
-                <PopOutIcon />
-              </button>
+              {isAndroid ? (
+                /* Browser: native fullscreen toggle */
+                <button
+                  className="player-overlay-btn"
+                  onClick={() => {
+                    if (!document.fullscreenElement) {
+                      overlayRef.current?.requestFullscreen?.();
+                      setIsNativeFullscreen(true);
+                    } else {
+                      document.exitFullscreen?.();
+                      setIsNativeFullscreen(false);
+                    }
+                  }}
+                  title={isNativeFullscreen ? "Exit fullscreen" : "Fullscreen"}
+                >
+                  {isNativeFullscreen ? <ExitFullscreenIcon /> : <FullscreenIcon />}
+                </button>
+              ) : (
+                /* Electron: pop-out window */
+                <button
+                  className="player-overlay-btn"
+                  onClick={() => {
+                    if (pipOpen) { window.electron?.closePipWindow?.(); return; }
+                    const url = sourceIsAsync(playerSource)
+                      ? resolvedPlayerUrl
+                      : getSourceUrl(playerSource, "movie", item.id, null, null, {}, playerAccentColor, playerSubLang);
+                    if (!url) return;
+                    pipUrlRef.current = url;
+                    window.electron?.openPipWindow?.(url, item.title);
+                  }}
+                  title={pipOpen ? "Close pop-out" : "Pop out player"}
+                  disabled={!pipOpen && (webviewLoading || !!(sourceIsAsync(playerSource) && !resolvedPlayerUrl))}
+                  style={pipOpen ? { color: "var(--red)" } : undefined}
+                >
+                  <PopOutIcon />
+                </button>
+              )}
             </div>
             {showSourceMenu && menuPos && (
               <div
@@ -1133,109 +1070,55 @@ export default function MoviePage({
                 {PLAYER_SOURCES.map((src) => (
                   <button
                     key={src.id}
-                    className={
-                      "source-dropdown__item" +
-                      (playerSource === src.id
-                        ? " source-dropdown__item--active"
-                        : "")
-                    }
+                    className={"source-dropdown__item" + (playerSource === src.id ? " source-dropdown__item--active" : "")}
                     onClick={() => {
                       setShowSourceMenu(false);
                       if (src.id === playerSource) return;
-                      // Manual selection wins over auto-failover
                       clearFailoverSource(`movie_${item.id}_${dubMode}`);
                       setPlayerSource(src.id);
                       storage.set(STORAGE_KEYS.PLAYER_SOURCE, src.id);
-                      setM3u8Url(null);
-                      setInterceptedSubs([]);
-                      resolvedPlayerUrlRef.current = null;
-                      setResolvedPlayerUrl(null);
-                      resolvingUrlRef.current = false;
-                      setResolvingUrl(false);
-                      setResolveError(null);
+                      setM3u8Url(null); setInterceptedSubs([]);
+                      resolvedPlayerUrlRef.current = null; setResolvedPlayerUrl(null);
+                      resolvingUrlRef.current = false; setResolvingUrl(false); setResolveError(null);
                     }}
                   >
                     <span>{src.label}</span>
-                    {src.tag && (
-                      <span className="source-dropdown__tag">{src.tag}</span>
-                    )}
-                    {src.note && (
-                      <span className="source-dropdown__note">{src.note}</span>
-                    )}
+                    {src.tag && <span className="source-dropdown__tag">{src.tag}</span>}
+                    {src.note && <span className="source-dropdown__note">{src.note}</span>}
                   </button>
                 ))}
               </div>
             )}
             <button
               className="player-overlay-btn"
-              onClick={() =>
-                movieDownload
-                  ? onGoToDownloads?.(movieDownload.id)
-                  : (setShowSourceMenu(false), setShowDownload(true))
-              }
-              title={
-                movieDownload
-                  ? movieDownload.status === "downloading"
-                    ? "Downloading… - view in Downloads"
-                    : "Already downloaded - view in Downloads"
-                  : "Download"
-              }
+              onClick={() => movieDownload ? onGoToDownloads?.(movieDownload.id) : (setShowSourceMenu(false), setShowDownload(true))}
+              title={movieDownload ? "View download" : "Download"}
             >
               {movieDownload ? (
-                <span
-                  className="player-downloaded-icon"
-                  style={{
-                    color:
-                      movieDownload.status === "downloading"
-                        ? "var(--red)"
-                        : "#4caf50",
-                  }}
-                >
+                <span className="player-downloaded-icon" style={{ color: movieDownload.status === "downloading" ? "var(--red)" : "#4caf50" }}>
                   {movieDownload.status === "downloading" ? "↓" : "✓"}
                 </span>
-              ) : (
-                <DownloadIcon />
-              )}
-              {!movieDownload && m3u8Url && (
-                <span className="player-overlay-dot" />
-              )}
+              ) : <DownloadIcon />}
+              {!movieDownload && m3u8Url && <span className="player-overlay-dot" />}
               {!sourceSupportsProgress(playerSource) && (
-                <span
-                  className="player-no-progress-hint"
-                  title="No automatic progress tracking for this source"
-                >
-                  ⚠ no tracking
-                </span>
+                <span className="player-no-progress-hint" title="No automatic progress tracking for this source">⚠ no tracking</span>
               )}
             </button>
           </div>
 
+          {/* Progress bar */}
           {displayPct > 0 && (
-            <div className="progress-bar-row">
-              <div className="progress-bar-outer">
-                <div
-                  className="progress-bar-fill"
-                  style={{ width: `${Math.min(displayPct, 100)}%` }}
-                />
+            <div className="fullscreen-player-progress">
+              <div className="progress-bar-outer" style={{ flex: 1 }}>
+                <div className="progress-bar-fill" style={{ width: `${Math.min(displayPct, 100)}%` }} />
               </div>
-              <span style={{ fontSize: 12, color: "var(--text3)" }}>
-                {progressLabel}
-              </span>
+              <span style={{ fontSize: 12, color: "var(--text3)" }}>{progressLabel}</span>
             </div>
           )}
-          <div className="progress-mark-row">
-            <span
-              style={{ fontSize: 12, color: "var(--text3)", marginRight: 4 }}
-            >
-              Mark progress:
-            </span>
+          <div className="fullscreen-player-mark-row">
+            <span style={{ fontSize: 12, color: "var(--text3)" }}>Mark:</span>
             {[25, 50, 75, 100].map((p) => (
-              <button
-                key={p}
-                className="btn btn-ghost"
-                style={{ padding: "5px 14px", fontSize: 12 }}
-                onClick={() => saveProgress(progressKey, p)}
-              >
+              <button key={p} className="btn btn-ghost" style={{ padding: "5px 14px", fontSize: 12 }} onClick={() => saveProgress(progressKey, p)}>
                 {p}%
               </button>
             ))}

@@ -8238,3 +8238,454 @@ html[data-win-titlebar][data-maximized] .main {
 .neo-cw-backdrop img {
     image-rendering: auto;
 }
+/* ═══════════════════════════════════════════════════════════════════════════
+   DETAIL PAGE — MOBILE RESPONSIVE OVERHAUL
+   Transforms the desktop flex layout into a cinematic mobile-first design.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 700px) {
+
+  /* ── Hero section ─────────────────────────────────────────────────────── */
+  .detail-hero {
+    min-height: 0;
+  }
+
+  .detail-bg {
+    /* Full bleed backdrop, taller on mobile */
+    height: 320px;
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .detail-gradient {
+    background:
+      linear-gradient(to top, var(--bg) 0%, rgba(20,20,20,0.85) 40%, rgba(20,20,20,0.3) 70%, transparent 100%),
+      linear-gradient(to bottom, rgba(20,20,20,0.6) 0%, transparent 30%);
+  }
+
+  /* ── Content: switch to vertical stack ────────────────────────────────── */
+  .detail-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+    padding: 0 0 24px;
+    /* Pull up over the backdrop */
+    margin-top: -120px;
+    position: relative;
+    z-index: 2;
+  }
+
+  /* ── Poster: centered, floats over the backdrop ───────────────────────── */
+  .detail-poster {
+    width: 120px;
+    margin: 0 auto 0 16px;
+    border-radius: 10px;
+    box-shadow: 0 12px 36px rgba(0,0,0,0.7);
+    border: 2px solid rgba(255,255,255,0.1);
+  }
+
+  /* ── Info block: full width below poster ─────────────────────────────── */
+  .detail-info {
+    width: 100%;
+    padding: 16px 16px 0;
+  }
+
+  .detail-type {
+    font-size: 10px;
+    letter-spacing: 2.5px;
+    margin-bottom: 6px;
+  }
+
+  .detail-title {
+    font-size: clamp(28px, 8vw, 40px);
+    line-height: 1.05;
+    margin-bottom: 12px;
+    letter-spacing: 0.5px;
+  }
+
+  .genres {
+    gap: 5px;
+    margin-bottom: 12px;
+  }
+
+  .genre-tag {
+    font-size: 10px;
+    padding: 3px 9px;
+  }
+
+  .detail-meta {
+    gap: 12px;
+    font-size: 12px;
+    margin-bottom: 14px;
+  }
+
+  .detail-overview {
+    font-size: 13px;
+    line-height: 1.65;
+    margin-bottom: 20px;
+    max-width: 100%;
+    /* Clamp to ~5 lines with a "read more" feel */
+    display: -webkit-box;
+    -webkit-line-clamp: 6;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* ── Action buttons: full-width stacked ──────────────────────────────── */
+  .detail-actions {
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .detail-actions .btn {
+    width: 100%;
+    justify-content: center;
+    padding: 13px 20px;
+    font-size: 14px;
+    border-radius: 10px;
+  }
+
+  /* ── Player section ───────────────────────────────────────────────────── */
+  .section {
+    padding: 10px 12px;
+  }
+
+  .section-title {
+    font-size: 15px;
+    margin-bottom: 14px;
+  }
+
+  .player-wrap {
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+
+  /* ── Progress & mark-watched row ─────────────────────────────────────── */
+  .progress-bar-row {
+    margin-top: 10px;
+    gap: 8px;
+  }
+
+  .progress-mark-row {
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .progress-mark-row .btn {
+    flex: 1;
+    min-width: 0;
+    padding: 7px 10px;
+    font-size: 12px;
+    text-align: center;
+    justify-content: center;
+  }
+
+  /* ── Collection scroll row ───────────────────────────────────────────── */
+  .scroll-row {
+    gap: 10px;
+    padding-bottom: 8px;
+  }
+
+  /* Age rating pill */
+  .age-rating-pill {
+    font-size: 11px;
+    padding: 2px 8px;
+  }
+}
+
+/* Fine-tune for very small phones */
+@media (max-width: 380px) {
+  .detail-bg {
+    height: 280px;
+  }
+
+  .detail-content {
+    margin-top: -100px;
+  }
+
+  .detail-poster {
+    width: 100px;
+  }
+
+  .detail-title {
+    font-size: 26px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PLAYER PAGE — Fullscreen player view (Netflix / Hotstar style)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.player-page {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  /* Hide Navbar */
+}
+
+/* Back button — top-left, shown over the player */
+.player-page__back {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 8px 16px 8px 10px;
+  cursor: pointer;
+  transition: background 0.18s, border-color 0.18s;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  max-width: calc(100vw - 160px);
+}
+
+.player-page__back:hover {
+  background: rgba(255,255,255,0.15);
+  border-color: rgba(255,255,255,0.3);
+}
+
+.player-page__back svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.player-page__back-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 260px;
+}
+
+/* The 16:9 player itself, centered in the black page */
+.player-page__player {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.player-page__player iframe,
+.player-page__player webview {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+/* Dark overlay for loading / error / pip states */
+.player-page__overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: rgba(0, 0, 0, 0.92);
+  color: #fff;
+}
+
+.player-page__overlay-label {
+  font-size: 15px;
+  color: var(--text2);
+  text-align: center;
+}
+
+/* Progress bar at the bottom of the screen */
+.player-page__progress {
+  position: absolute;
+  bottom: 52px;
+  left: 16px;
+  right: 16px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+
+.player-page:hover .player-page__progress {
+  opacity: 1;
+}
+
+/* Mark progress row at bottom */
+.player-page__mark-row {
+  position: absolute;
+  bottom: 12px;
+  left: 16px;
+  right: 16px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+
+.player-page:hover .player-page__mark-row {
+  opacity: 1;
+}
+
+/* Suppress the navbar while player page is shown */
+[data-player-fullscreen="1"] .navbar,
+[data-player-fullscreen="1"] .sidebar,
+[data-player-fullscreen="1"] .window-titlebar {
+  display: none !important;
+}
+
+/* On mobile, back label can be shorter */
+@media (max-width: 480px) {
+  .player-page__back {
+    top: 12px;
+    left: 12px;
+    padding: 7px 12px 7px 8px;
+    font-size: 13px;
+  }
+
+  .player-page__back-label {
+    max-width: 140px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FULLSCREEN PLAYER OVERLAY — Netflix/Hotstar style
+   Fixed over everything, black background, back button top-left.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.fullscreen-player-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Hide navbar/titlebar while overlay is open */
+.fullscreen-player-overlay ~ * .navbar,
+body:has(.fullscreen-player-overlay) .navbar,
+body:has(.fullscreen-player-overlay) .window-titlebar {
+  display: none !important;
+}
+
+.fullscreen-player-back {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0,0,0,0.6);
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 8px 16px 8px 10px;
+  cursor: pointer;
+  transition: background 0.18s, border-color 0.18s;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  max-width: calc(100vw - 160px);
+}
+
+.fullscreen-player-back:hover {
+  background: rgba(255,255,255,0.16);
+  border-color: rgba(255,255,255,0.32);
+}
+
+.fullscreen-player-back svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.fullscreen-player-back__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 300px;
+}
+
+/* Player fills the entire black screen */
+.player-wrap--fs {
+  position: absolute !important;
+  inset: 0 !important;
+  border-radius: 0 !important;
+  border: none !important;
+}
+
+/* ::before padding-top trick must be overridden when using absolute fill */
+.player-wrap--fs::before {
+  display: none !important;
+}
+
+/* Progress bar — bottom of screen, fades in on hover */
+.fullscreen-player-progress {
+  position: absolute;
+  bottom: 52px;
+  left: 16px;
+  right: 16px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  opacity: 0;
+  transition: opacity 0.25s;
+  pointer-events: none;
+}
+
+.fullscreen-player-overlay:hover .fullscreen-player-progress {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.fullscreen-player-mark-row {
+  position: absolute;
+  bottom: 12px;
+  left: 16px;
+  right: 16px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  opacity: 0;
+  transition: opacity 0.25s;
+  pointer-events: none;
+}
+
+.fullscreen-player-overlay:hover .fullscreen-player-mark-row {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media (max-width: 480px) {
+  .fullscreen-player-back {
+    top: 12px;
+    left: 12px;
+    padding: 7px 12px 7px 8px;
+    font-size: 13px;
+  }
+  .fullscreen-player-back__label {
+    max-width: 160px;
+  }
+}
