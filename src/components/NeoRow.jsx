@@ -2,14 +2,16 @@ import { useRef, memo, useCallback } from "react";
 import NeoCard from "./NeoCard";
 
 /**
- * NeoRow — Horizontally-scrollable content row.
+ * NeoRow — Horizontally-scrollable content row with Netflix-style hover expansion.
  *
- * Performance improvements:
- *  1. Native CSS scroll (no JS scroll hijacking)
- *  2. Scroll buttons appear on hover via CSS, not React state
- *  3. scrollBy() is compositor-driven — no layout recalc
- *  4. Each card: contain:layout style prevents row reflow on card hover
- *  5. overflow-y:visible allows hover shadow to escape without clip
+ * Key implementation notes:
+ *  1. overflow-y:visible on track allows expanded cards to escape the row bounds
+ *  2. padding-bottom + negative margin-bottom technique prevents layout shift
+ *     while giving expanded panels visual room to render
+ *  3. neo-row wrapper is position:relative with overflow:visible — nav buttons
+ *     use z-index:300 to appear above expanded cards
+ *  4. No JS per-frame — all hover animation via CSS transitions
+ *  5. z-index promotion on .neo-row__item via CSS :hover (no React state)
  */
 const NeoRow = memo(function NeoRow({
   title,
@@ -70,13 +72,12 @@ const NeoRow = memo(function NeoRow({
         <div
           className="neo-row__track"
           ref={trackRef}
-          style={{ overflowY: "visible" }}
         >
           {items.map((item) => {
             const mediaType = item.media_type || (item.first_air_date ? "tv" : "movie");
             const key = `${mediaType}_${item.id}`;
             return (
-              <div key={key} className="neo-row__item" style={{ overflow: "visible" }}>
+              <div key={key} className="neo-row__item">
                 <NeoCard
                   item={item}
                   onClick={() => onSelect?.(item)}
