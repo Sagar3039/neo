@@ -36,23 +36,35 @@ export function useBlockedStats(resetKey) {
     sessionDomainsRef.current = {};
   }, [resetKey]);
 
-  // Listen for batched block updates from main process
+  // Listen for batched block updates — Electron IPC in desktop, BroadcastChannel in browser
   useEffect(() => {
-    if (!window.electron?.onBlockedUpdate) return;
-    const handler = window.electron.onBlockedUpdate((data) => {
+    const applyBatch = (data) => {
       if (!data) return;
-      // Increment alltime display counter
       setAlltimeTotal((prev) => prev + (data.total || 0));
-      // Increment session counter + accumulate domain map
       setSessionTotal((prev) => prev + (data.total || 0));
       const map = sessionDomainsRef.current;
       for (const [domain, count] of Object.entries(data.domains || {})) {
         map[domain] = (map[domain] || 0) + count;
       }
-    });
+    };
+
+    // Electron path
+    if (window.electron?.onBlockedUpdate) {
+      const handler = window.electron.onBlockedUpdate(applyBatch);
+      return () => {
+        if (window.electron?.offBlockedUpdate)
+          window.electron.offBlockedUpdate(handler);
+      };
+    }
+
+    // Browser path — Service Worker posts stats via BroadcastChannel
+    let channel;
+    try {
+      channel = new BroadcastChannel("adblock-stats");
+      channel.onmessage = (e) => applyBatch(e.data);
+    } catch {}
     return () => {
-      if (window.electron?.offBlockedUpdate)
-        window.electron.offBlockedUpdate(handler);
+      try { channel?.close(); } catch {}
     };
   }, []);
 
